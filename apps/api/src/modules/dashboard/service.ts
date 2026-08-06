@@ -310,10 +310,14 @@ async function fetchImportedRows(
             "purchase_invoice_income",
             "sales_invoice_income",
         ].join(",");
-    let lastId: number | string | null = null;
-    let pageNumber = 0;
+    const days = splitIntoDays(startDate, endDate);
 
-    for (;;) {
+    for (const day of days) {
+        const date = day.startDate.slice(0, 10);
+        let lastId: number | string | null = null;
+        let pageNumber = 0;
+
+        for (;;) {
         pageNumber += 1;
         let page: Record<string, unknown>[] | null = null;
         let lastError: { message: string } | null = null;
@@ -326,14 +330,7 @@ async function fetchImportedRows(
             let query = supabaseAdmin
                 .from("shipment_imports")
                 .select(columns)
-                .gte(
-                    "despatch_date",
-                    toIsoDate(startDate),
-                )
-                .lte(
-                    "despatch_date",
-                    toIsoDate(endDate),
-                )
+                .eq("despatch_date", date)
                 .order(
                     "id",
                     {
@@ -405,7 +402,8 @@ async function fetchImportedRows(
 
         lastId = nextId;
 
-        await sleep(100);
+            await sleep(50);
+        }
     }
 
     return rows.map((row, index) => {
