@@ -1,4 +1,4 @@
-﻿import type {
+import type {
     DashboardProjectRow,
     DashboardResponse,
 } from "@dedsis/contracts";
@@ -35,6 +35,10 @@ type CachedValue = {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_DATE_RANGE_DAYS = 93;
 const cache = new Map<string, CachedValue>();
+const inFlight = new Map<
+    string,
+    Promise<DashboardResponse>
+>();
 
 function parseNumber(value: unknown): number {
     if (
@@ -290,44 +294,80 @@ async function fetchDayWithRetry(
 async function fetchImportedRows(
     startDate: Date,
     endDate: Date,
+    includeRaw = false,
 ): Promise<NormalizedRow[]> {
     const PAGE_SIZE = 1000;
+    const MAX_ATTEMPTS = 4;
     const rows: Record<string, unknown>[] = [];
+    const columns = includeRaw
+        ? "*"
+        : [
+            "id",
+            "legacy_shipment_id",
+            "legacy_income_expense_id",
+            "project_name",
+            "plate_number",
+            "purchase_invoice_income",
+            "sales_invoice_income",
+        ].join(",");
 
     for (let from = 0; ; from += PAGE_SIZE) {
         const to = from + PAGE_SIZE - 1;
+        let page: Record<string, unknown>[] | null = null;
+        let lastError: { message: string } | null = null;
 
-        const { data, error } = await supabaseAdmin
-            .from("shipment_imports")
-            .select("*")
-            .gte(
-                "despatch_date",
-                toIsoDate(startDate),
-            )
-            .lte(
-                "despatch_date",
-                toIsoDate(endDate),
-            )
-            .order(
-                "legacy_income_expense_id",
-                {
-                    ascending: true,
-                },
-            )
-            .range(from, to);
+        for (
+            let attempt = 1;
+            attempt <= MAX_ATTEMPTS;
+            attempt += 1
+        ) {
+            const { data, error } = await supabaseAdmin
+                .from("shipment_imports")
+                .select(columns)
+                .gte(
+                    "despatch_date",
+                    toIsoDate(startDate),
+                )
+                .lte(
+                    "despatch_date",
+                    toIsoDate(endDate),
+                )
+                .order(
+                    "legacy_income_expense_id",
+                    {
+                        ascending: true,
+                    },
+                )
+                .range(from, to);
 
-        if (error) {
+            if (!error) {
+                page = (data ?? []) as unknown as Record<
+                    string,
+                    unknown
+                >[];
+                break;
+            }
+
+            lastError = error;
+            console.warn(
+                `Dashboard Supabase sayfası ${from}-${to} alınamadı (${attempt}/${MAX_ATTEMPTS}): ${error.message}`,
+            );
+
+            if (attempt < MAX_ATTEMPTS) {
+                await sleep(attempt * 750);
+            }
+        }
+
+        if (page === null) {
             throw Object.assign(
                 new Error(
-                    `İçe aktarılan kayıtlar alınamadı: ${error.message}`,
+                    `İçe aktarılan kayıtlar alınamadı: ${lastError?.message ?? "Bilinmeyen Supabase hatası"}`,
                 ),
                 {
-                    statusCode: 500,
+                    statusCode: 503,
                 },
             );
         }
-
-        const page = data ?? [];
 
         rows.push(...page);
 
@@ -338,6 +378,8 @@ async function fetchImportedRows(
         if (page.length < PAGE_SIZE) {
             break;
         }
+
+        await sleep(100);
     }
 
     return rows.map((row, index) => {
@@ -727,6 +769,7 @@ export async function getProjectDetail(
     const rows = await fetchImportedRows(
         normalizedStartDate,
         normalizedEndDate,
+        true,
     );
 
     const projectDetails =
@@ -751,7 +794,7 @@ export async function getProjectDetail(
     );
 }
 
-export async function getDashboard(
+async function computeDashboard(
     input: DashboardInput,
 ): Promise<DashboardResponse> {
     const startDate = new Date(input.startDate);
@@ -801,7 +844,7 @@ export async function getDashboard(
         return cached.value;
     }
 
-    console.time("dashboard-total");
+    const startedAt = Date.now();
 
     console.log(
         "Dashboard 1/5: Kayıtlar ve proje tanımları okunuyor...",
@@ -932,7 +975,29 @@ export async function getDashboard(
         `Dashboard 5/5 tamamlandı: ${projects.length} proje, ${totals.shipmentCount} sefer`,
     );
 
-    console.timeEnd("dashboard-total");
+    console.log(
+        `Dashboard toplam süre: ${Date.now() - startedAt}ms`,
+    );
 
     return value;
+}
+
+export async function getDashboard(
+    input: DashboardInput,
+): Promise<DashboardResponse> {
+    const key = `${input.startDate.toISOString()}:${input.endDate.toISOString()}`;
+    const existing = inFlight.get(key);
+
+    if (existing) {
+        return existing;
+    }
+
+    const request = computeDashboard(input)
+        .finally(() => {
+            inFlight.delete(key);
+        });
+
+    inFlight.set(key, request);
+
+    return request;
 }

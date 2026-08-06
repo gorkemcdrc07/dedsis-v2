@@ -33,13 +33,13 @@ export async function buildApp() {
         timeWindow: "1 minute",
     });
 
-    app.setErrorHandler((error: unknown, _request, reply) => {
+    app.setErrorHandler((error: unknown, request, reply) => {
         if (error instanceof ZodError) {
             return reply.code(400).send({
                 success: false,
                 error: {
                     code: "VALIDATION_ERROR",
-                    message: error.issues[0]?.message ?? "Geçersiz istek",
+                    message: error.issues[0]?.message ?? "GeÃ§ersiz istek",
                 },
             });
         }
@@ -47,12 +47,20 @@ export async function buildApp() {
         const normalizedError: ErrorWithStatusCode =
             error instanceof Error
                 ? error
-                : new Error("Bilinmeyen sunucu hatasý");
+                : new Error("Bilinmeyen sunucu hatasÄ±");
 
         const status =
             typeof normalizedError.statusCode === "number"
                 ? normalizedError.statusCode
                 : 500;
+
+        request.log.error(
+            {
+                err: normalizedError,
+                statusCode: status,
+            },
+            "Request failed",
+        );
 
         return reply.code(status).send({
             success: false,
@@ -60,7 +68,7 @@ export async function buildApp() {
                 code: status === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
                 message:
                     status === 500
-                        ? "Beklenmeyen sunucu hatasý"
+                        ? "Beklenmeyen sunucu hatasÄ±"
                         : normalizedError.message,
             },
         });
