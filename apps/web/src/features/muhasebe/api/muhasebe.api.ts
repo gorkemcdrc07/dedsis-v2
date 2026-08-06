@@ -192,6 +192,13 @@ export async function getMuhasebeDashboard(
 
 }
 
+export async function deleteMuhasebePeriod(ay:number, yil:number){
+    return api<{deletedRecords:number}>(
+        `/api/v1/muhasebe/period?ay=${ay}&yil=${yil}`,
+        { method:"DELETE" }
+    );
+}
+
 
 
 

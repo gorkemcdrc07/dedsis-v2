@@ -3,6 +3,7 @@
 import {
     requireUser
 } from "../../common/auth.js";
+import { requirePermission } from "../../common/authorization.js";
 
 
 import {
@@ -12,6 +13,7 @@ import {
     createMuhasebeDistribution,
     getMuhasebeStats,
     getMuhasebeDashboard
+    ,deleteMuhasebePeriod
 } from "./service.js";
 
 
@@ -93,8 +95,11 @@ export async function muhasebeRoutes(
             await requireUser(request);
 
 
-            const data =
-                await getMuhasebeStats();
+            const { ay, yil } = request.query as { ay?: string; yil?: string };
+            const data = await getMuhasebeStats({
+                ay: ay ? Number(ay) : undefined,
+                yil: yil ? Number(yil) : undefined
+            });
 
 
             return {
@@ -115,8 +120,11 @@ export async function muhasebeRoutes(
             await requireUser(request);
 
 
-            const data =
-                await getMuhasebeDashboard();
+            const { ay, yil } = request.query as { ay?: string; yil?: string };
+            const data = await getMuhasebeDashboard({
+                ay: ay ? Number(ay) : undefined,
+                yil: yil ? Number(yil) : undefined
+            });
 
 
             return {
@@ -237,6 +245,18 @@ export async function muhasebeRoutes(
 
         }
     );
+
+    app.delete("/period", async(request) => {
+        await requirePermission(request, "accounting.delete");
+        const { ay, yil } = request.query as { ay?: string; yil?: string };
+        const month = Number(ay);
+        const year = Number(yil);
+        if(!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2000){
+            throw Object.assign(new Error("Geçerli bir ay ve yıl seçin."), { statusCode: 400 });
+        }
+        const data = await deleteMuhasebePeriod({ ay: month, yil: year });
+        return { success: true, data };
+    });
 
 
 

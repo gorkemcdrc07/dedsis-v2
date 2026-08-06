@@ -12,95 +12,29 @@ export async function getMuhasebeKayitlari(
 ){
 
 
-    const {
-        data:dagitimlar,
-        error:dagitimError
-    } =
-    await supabaseAdmin
-    .from(
-        "muhasebe_kayit_proje_dagilimlari"
-    )
-    .select(
-        "muhasebe_kayit_id"
-    );
-
-
-
-    if(dagitimError){
-
-        throw new Error(
-            dagitimError.message
-        );
-
+    const distributedIds = new Set<string>();
+    for(let from = 0; ; from += 1000){
+        const { data, error } = await supabaseAdmin
+            .from("muhasebe_kayit_proje_dagilimlari")
+            .select("muhasebe_kayit_id")
+            .range(from, from + 999);
+        if(error) throw new Error(error.message);
+        for(const row of data ?? []) distributedIds.add(String(row.muhasebe_kayit_id));
+        if((data?.length ?? 0) < 1000) break;
     }
 
-
-
-    const dagitilanIds =
-        (dagitimlar ?? [])
-        .map(
-            x=>x.muhasebe_kayit_id
-        );
-
-
-    console.log(
-        "DAGITILAN KAYIT SAYISI",
-        dagitilanIds.length
-    );
-
-    console.log(
-        "ILK DAGITILAN IDLER",
-        dagitilanIds.slice(0,10)
-    );
-
-
-
-    let query =
-        supabaseAdmin
-        .from(
-            "muhasebe_kayitlari"
-        )
-        .select("*")
-        .order(
-            "id",
-            {
-                ascending:false
-            }
-        );
-
-
-
-    if(dagitilanIds.length){
-
-        query =
-            query.not(
-                "id",
-                "in",
-                `(${dagitilanIds.join(",")})`
-            );
-
+    const records: any[] = [];
+    for(let from = 0; ; from += 1000){
+        let query = supabaseAdmin.from("muhasebe_kayitlari").select("*").order("id", { ascending:false });
+        if(params?.ay) query = query.eq("donem_ay", params.ay);
+        if(params?.yil) query = query.eq("donem_yil", params.yil);
+        const { data, error } = await query.range(from, from + 999);
+        if(error) throw new Error(error.message);
+        records.push(...(data ?? []));
+        if((data?.length ?? 0) < 1000) break;
     }
 
-
-
-    const {
-        data,
-        error
-    } =
-    await query;
-
-
-
-    if(error){
-
-        throw new Error(
-            error.message
-        );
-
-    }
-
-
-    return data ?? [];
+    return records.filter((row) => !distributedIds.has(String(row.id)));
 
 }
 
@@ -279,7 +213,7 @@ export async function getMuhasebeImports(
                 ascending:false
             }
         )
-        .limit(10);
+        .limit(100);
 
 
 
@@ -474,35 +408,21 @@ console.log(
     return data ?? [];
 
 }
-export async function getMuhasebeStats(){
+export async function getMuhasebeStats(
+    params?: { ay?: number; yil?: number }
+){
 
 
-    const {
-        data,
-        error
-    } =
-    await supabaseAdmin
-    .from(
-        "muhasebe_kayitlari"
-    )
-    .select(
-        "borc,alacak"
-    );
-
-
-
-    if(error){
-
-        throw new Error(
-            error.message
-        );
-
+    const rows: Array<{ borc: number | null; alacak: number | null }> = [];
+    for(let from = 0; ; from += 1000){
+        let query = supabaseAdmin.from("muhasebe_kayitlari").select("borc,alacak");
+        if(params?.ay) query = query.eq("donem_ay", params.ay);
+        if(params?.yil) query = query.eq("donem_yil", params.yil);
+        const { data, error } = await query.range(from, from + 999);
+        if(error) throw new Error(error.message);
+        rows.push(...(data ?? []));
+        if((data?.length ?? 0) < 1000) break;
     }
-
-
-
-    const rows =
-        data ?? [];
 
 
 
@@ -538,6 +458,47 @@ export async function getMuhasebeStats(){
 
     };
 
+}
+
+export async function deleteMuhasebePeriod(params: { ay: number; yil: number }) {
+    const ids: Array<string | number> = [];
+    for(let from = 0; ; from += 1000){
+        const { data: records, error: recordsError } = await supabaseAdmin
+            .from("muhasebe_kayitlari")
+            .select("id")
+            .eq("donem_ay", params.ay)
+            .eq("donem_yil", params.yil)
+            .order("id")
+            .range(from, from + 999);
+        if(recordsError) throw new Error(recordsError.message);
+        ids.push(...(records ?? []).map((row) => row.id));
+        if((records?.length ?? 0) < 1000) break;
+    }
+
+    for(let index = 0; index < ids.length; index += 500){
+        const chunk = ids.slice(index, index + 500);
+        const { error } = await supabaseAdmin
+            .from("muhasebe_kayit_proje_dagilimlari")
+            .delete()
+            .in("muhasebe_kayit_id", chunk);
+        if(error) throw new Error(error.message);
+    }
+
+    const { error: recordDeleteError } = await supabaseAdmin
+        .from("muhasebe_kayitlari")
+        .delete()
+        .eq("donem_ay", params.ay)
+        .eq("donem_yil", params.yil);
+    if(recordDeleteError) throw new Error(recordDeleteError.message);
+
+    const { error: importDeleteError } = await supabaseAdmin
+        .from("muhasebe_importlar")
+        .delete()
+        .eq("donem_ay", params.ay)
+        .eq("donem_yil", params.yil);
+    if(importDeleteError) throw new Error(importDeleteError.message);
+
+    return { deletedRecords: ids.length };
 }
 
 
