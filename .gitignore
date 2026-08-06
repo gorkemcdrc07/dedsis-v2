@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+coverage/
+.vscode/
+.vs/
+.idea/
+.DS_Store
+supabase/.temp/
+**/supabase/.temp/
+*.bak
+*.backup
+*.json-log-backup-*
+*.accordion-backup
+*.tsbuildinfo
