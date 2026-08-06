@@ -15,6 +15,7 @@ import { basbugRoutes } from "./modules/basbug/routes.js";
 import { userProjectsRoutes } from "./modules/user-projects/routes.js";
 import { muhasebeRoutes } from "./modules/muhasebe/routes.js";
 import { ikRoutes } from "./modules/ik/routes.js";
+import { adminUsersRoutes } from "./modules/admin-users/routes.js";
 
 type ErrorWithStatusCode = Error & {
     statusCode?: number;
@@ -140,6 +141,10 @@ export async function buildApp() {
 
     await app.register(ikRoutes, {
         prefix: "/api/v1/ik",
+    });
+
+    await app.register(adminUsersRoutes, {
+        prefix: "/api/v1/admin/users",
     });
 
     return app;

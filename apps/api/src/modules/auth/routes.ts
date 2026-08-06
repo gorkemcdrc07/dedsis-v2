@@ -213,6 +213,29 @@ export async function authRoutes(app: FastifyInstance) {
       ),
     );
 
+    const { data: userPermissionRows, error: userPermissionError } =
+      await supabaseAdmin
+        .from("v2_user_permissions")
+        .select("is_allowed, v2_permissions(code)")
+        .eq("user_id", user.id);
+
+    if (userPermissionError && userPermissionError.code !== "42P01") {
+      request.log.error(userPermissionError);
+    }
+
+    for (const row of userPermissionRows ?? []) {
+      const relation = firstRelation(
+        row.v2_permissions as
+          | PermissionRelation
+          | PermissionRelation[]
+          | null,
+      );
+      if (!relation) continue;
+      const index = permissions.indexOf(relation.code);
+      if (row.is_allowed && index === -1) permissions.push(relation.code);
+      if (!row.is_allowed && index >= 0) permissions.splice(index, 1);
+    }
+
     return {
       success: true,
       data: {

@@ -87,3 +87,10 @@ export function hasRole(
 
 }
 
+export function hasPermission(
+  session: CurrentSession,
+  permission: string,
+): boolean {
+  return hasRole(session, ["super_admin"]) || session.permissions.includes(permission);
+}
+

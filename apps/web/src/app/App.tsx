@@ -24,6 +24,8 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Toaster } from "sonner";
 import {
   getCurrentSession,
+  hasPermission,
+  hasRole,
   isAuthenticated,
   logout,
   type CurrentSession,
@@ -37,18 +39,25 @@ import EvideaPage from "../pages/EvideaPage";
 import BasbugPage from "../pages/BasbugPage";
 import MuhasebePage from "../pages/MuhasebePage";
 import InsanKaynaklariPage from "../pages/InsanKaynaklariPage";
+import { UserManagementPage } from "../pages/UserManagementPage";
 
 const navigation = [
-  { path: "ana-panel", title: "Ana Panel" },
-{ path: "operasyon-kayitlari", title: "Operasyon Kayıtları" },
-  { path: "yonetim-paneli", title: "Yönetim" },
-  { path: "muhasebe", title: "Muhasebe" },
-  { path: "insan-kaynaklari", title: "İnsan Kaynakları" },
-  { path: "proje-operasyon", title: "Operasyon" },
-  { path: "kullanici-yetkileri", title: "Yetkilendirme" },
-  { path: "evidea", title: "Evidea" },
-  { path: "basbug", title: "Başbuğ" },
+  { path: "ana-panel", title: "Ana Panel", permission: "screen.dashboard" },
+  { path: "operasyon-kayitlari", title: "Operasyon Kayıtları", permission: "screen.operations" },
+  { path: "yonetim-paneli", title: "Yönetim", superAdminOnly: true },
+  { path: "muhasebe", title: "Muhasebe", permission: "screen.accounting" },
+  { path: "insan-kaynaklari", title: "İnsan Kaynakları", permission: "screen.hr" },
+  { path: "proje-operasyon", title: "Operasyon", permission: "screen.project_operations" },
+  { path: "kullanici-yetkileri", title: "Proje Yetkileri", superAdminOnly: true },
+  { path: "evidea", title: "Evidea", permission: "screen.evidea" },
+  { path: "basbug", title: "Başbuğ", permission: "screen.basbug" },
 ];
+
+function canSeeNavigation(session: CurrentSession, item: (typeof navigation)[number]) {
+  if (item.superAdminOnly) return hasRole(session, ["super_admin"]);
+  const configured = session.permissions.some((permission) => permission.startsWith("screen."));
+  return !configured || !item.permission || hasPermission(session, item.permission);
+}
 
 function LoadingScreen() {
   return (
@@ -119,13 +128,17 @@ function Layout() {
   const session = useOutletContext<CurrentSession>();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const visibleNavigation = useMemo(
+    () => navigation.filter((item) => canSeeNavigation(session, item)),
+    [session],
+  );
 
   const activePage = useMemo(
     () =>
-      navigation.find((item) =>
+      visibleNavigation.find((item) =>
         location.pathname.includes(item.path),
       ) ?? navigation[0],
-    [location.pathname],
+    [location.pathname, visibleNavigation],
   );
 
   const displayName =
@@ -167,7 +180,7 @@ function Layout() {
           </NavLink>
 
           <nav className="hidden min-w-0 flex-1 items-center gap-1 xl:flex">
-            {navigation.map((item) => (
+            {visibleNavigation.map((item) => (
               <NavLink
                 key={item.path}
                 to={`/${item.path}`}
@@ -286,7 +299,7 @@ function Layout() {
         {mobileMenuOpen ? (
           <div className="border-t border-slate-200 bg-white px-5 py-3 xl:hidden">
             <nav className="mx-auto grid max-w-[1600px] gap-1 sm:grid-cols-2 lg:grid-cols-4">
-              {navigation.map((item) => (
+              {visibleNavigation.map((item) => (
                 <NavLink
                   key={item.path}
                   to={`/${item.path}`}
@@ -347,11 +360,19 @@ export function App() {
 
           <Route
             path="ana-panel"
-            element={<DashboardPage />}
+            element={<PermissionOnly permission="screen.dashboard"><DashboardPage /></PermissionOnly>}
+          />
+          <Route
+            path="yonetim-paneli"
+            element={
+              <SuperAdminOnly>
+                <UserManagementPage />
+              </SuperAdminOnly>
+            }
           />
 <Route
   path="operasyon-kayitlari"
-  element={<OperationsPage />}
+  element={<PermissionOnly permission="screen.operations"><OperationsPage /></PermissionOnly>}
 />
 <Route
   path="kullanici-yetkileri"
@@ -360,22 +381,22 @@ export function App() {
 
 <Route
   path="evidea"
-  element={<EvideaPage />}
+  element={<PermissionOnly permission="screen.evidea"><EvideaPage /></PermissionOnly>}
 />
 
 <Route
   path="basbug"
-  element={<BasbugPage />}
+  element={<PermissionOnly permission="screen.basbug"><BasbugPage /></PermissionOnly>}
 />
 
 <Route
   path="muhasebe"
-  element={<MuhasebePage />}
+  element={<PermissionOnly permission="screen.accounting"><MuhasebePage /></PermissionOnly>}
 />
 
 <Route
   path="insan-kaynaklari"
-  element={<InsanKaynaklariPage />}
+  element={<PermissionOnly permission="screen.hr"><InsanKaynaklariPage /></PermissionOnly>}
 />
 
           {navigation
@@ -383,6 +404,7 @@ export function App() {
   (item) =>
     item.path !== "ana-panel" &&
     item.path !== "operasyon-kayitlari" &&
+    item.path !== "yonetim-paneli" &&
     item.path !== "kullanici-yetkileri" &&
     item.path !== "evidea" &&
     item.path !== "basbug",
@@ -392,9 +414,9 @@ export function App() {
                 key={item.path}
                 path={item.path}
                 element={
-                  <PlaceholderPage
-                    title={item.title}
-                  />
+                  <PermissionOnly permission={item.permission}>
+                    <PlaceholderPage title={item.title} />
+                  </PermissionOnly>
                 }
               />
             ))}
@@ -412,6 +434,19 @@ export function App() {
 
     </>
   );
+}
+
+function SuperAdminOnly({ children }: { children: React.ReactNode }) {
+  const session = useOutletContext<CurrentSession>();
+  return hasRole(session, ["super_admin"]) ? children : <Navigate to="/ana-panel" replace />;
+}
+
+function PermissionOnly({ permission, children }: { permission?: string; children: React.ReactNode }) {
+  const session = useOutletContext<CurrentSession>();
+  const configured = session.permissions.some((item) => item.startsWith("screen."));
+  return !permission || !configured || hasPermission(session, permission)
+    ? children
+    : <Navigate to="/ana-panel" replace />;
 }
 
 
