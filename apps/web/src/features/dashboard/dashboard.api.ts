@@ -146,8 +146,11 @@ export type DashboardProjectSourceDetail = {
         hizmetDetay: {
 
             isim: string;
-
-            tutar: number;
+            satis: number;
+            alis: number;
+            hizmet: number;
+            masraf: number;
+            kar: number;
 
         }[];
 
