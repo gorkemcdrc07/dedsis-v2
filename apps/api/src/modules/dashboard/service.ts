@@ -721,41 +721,50 @@ async function getMuhasebeExpenseMap(
         Number(endDate.toISOString().slice(5, 7));
 
 
-    const { data: dagitimlar, error: dagitimError } =
-        await supabaseAdmin
-            .from("muhasebe_kayit_proje_dagilimlari")
-            .select(`
-                muhasebe_kayit_id,
-                project_id,
-                tutar
-            `);
+    const dagitimlar: Array<{
+        muhasebe_kayit_id: number | string;
+        project_id: number | string;
+        tutar: number | string | null;
+    }> = [];
 
-    if (dagitimError) {
-        throw new Error(dagitimError.message);
+    for (let from = 0; ; from += 1000) {
+        const { data: page, error: dagitimError } = await supabaseAdmin
+            .from("muhasebe_kayit_proje_dagilimlari")
+            .select("muhasebe_kayit_id, project_id, tutar")
+            .range(from, from + 999);
+
+        if (dagitimError) {
+            throw new Error(dagitimError.message);
+        }
+
+        dagitimlar.push(...(page ?? []));
+
+        if ((page?.length ?? 0) < 1000) {
+            break;
+        }
     }
 
+    const donemKayitIds = new Set<string>();
 
-    const kayitIds =
-        [
-            ...new Set(
-                (dagitimlar ?? [])
-                    .map(x => x.muhasebe_kayit_id)
-            )
-        ];
-
-
-    const { data: kayitlar, error: kayitError } =
-        await supabaseAdmin
+    for (let from = 0; ; from += 1000) {
+        const { data: page, error: kayitError } = await supabaseAdmin
             .from("muhasebe_kayitlari")
-            .select(`
-                id,
-                donem_ay,
-                donem_yil
-            `)
-            .in("id", kayitIds);
+            .select("id")
+            .eq("donem_ay", ay)
+            .eq("donem_yil", yil)
+            .range(from, from + 999);
 
-    if (kayitError) {
-        throw new Error(kayitError.message);
+        if (kayitError) {
+            throw new Error(kayitError.message);
+        }
+
+        for (const kayit of page ?? []) {
+            donemKayitIds.add(String(kayit.id));
+        }
+
+        if ((page?.length ?? 0) < 1000) {
+            break;
+        }
     }
 
 
@@ -803,23 +812,8 @@ async function getMuhasebeExpenseMap(
         new Map<string, number>();
 
 
-    for (const row of dagitimlar ?? []) {
-
-        const kayit =
-            kayitlar?.find(
-                x => x.id === row.muhasebe_kayit_id
-            );
-
-
-        if (!kayit) {
-            continue;
-        }
-
-
-        if (
-            Number(kayit.donem_ay) !== ay ||
-            Number(kayit.donem_yil) !== yil
-        ) {
+    for (const row of dagitimlar) {
+        if (!donemKayitIds.has(String(row.muhasebe_kayit_id))) {
             continue;
         }
 
@@ -1684,30 +1678,34 @@ async function getIkExpenseMap(
         );
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseAdmin
+    const data: Array<{
+        tutar: number | string | null;
+        project_id: number | string;
+        ik_kayitlari: { donem_ay: number; donem_yil: number } | { donem_ay: number; donem_yil: number }[] | null;
+    }> = [];
+
+    for (let from = 0; ; from += 1000) {
+        const { data: page, error } = await supabaseAdmin
             .from("ik_proje_dagilimlari")
             .select(`
                 tutar,
                 project_id,
-
                 ik_kayitlari(
                     donem_ay,
                     donem_yil
                 )
-            `);
+            `)
+            .range(from, from + 999);
 
+        if (error) {
+            throw new Error(error.message);
+        }
 
+        data.push(...(page ?? []));
 
-    if (error) {
-
-        throw new Error(
-            error.message
-        );
-
+        if ((page?.length ?? 0) < 1000) {
+            break;
+        }
     }
 
 
