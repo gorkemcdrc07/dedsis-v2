@@ -1,12 +1,16 @@
 ﻿import {
   Bell,
+  Boxes,
   ChevronDown,
+  ContactRound,
+  House,
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   Settings,
   ShieldCheck,
+  Sofa,
+  Truck,
   Users,
   X,
 } from "lucide-react";
@@ -31,7 +35,6 @@ import {
   type CurrentSession,
 } from "../features/auth/auth";
 import { LoginPage } from "../pages/LoginPage";
-import { PlaceholderPage } from "../pages/PlaceholderPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { OperationsPage } from "../pages/OperationsPage";
 import { EmployeeProjectsPage } from "../pages/EmployeeProjectsPage";
@@ -42,16 +45,14 @@ import InsanKaynaklariPage from "../pages/InsanKaynaklariPage";
 import { UserManagementPage } from "../pages/UserManagementPage";
 
 const navigation = [
-  { path: "ana-panel", title: "Ana Panel", permission: "screen.dashboard" },
-  { path: "operasyon-kayitlari", title: "Operasyon Kayıtları", permission: "screen.operations" },
-  { path: "yonetim-paneli", title: "Yönetim", superAdminOnly: true },
-  { path: "muhasebe", title: "Muhasebe", permission: "screen.accounting" },
-  { path: "insan-kaynaklari", title: "İnsan Kaynakları", permission: "screen.hr" },
-  { path: "proje-operasyon", title: "Operasyon", permission: "screen.project_operations" },
-  { path: "kullanici-yetkileri", title: "Proje Yetkileri", superAdminOnly: true },
-  { path: "evidea", title: "Evidea", permission: "screen.evidea" },
-  { path: "basbug", title: "Başbuğ", permission: "screen.basbug" },
+  { path: "ana-panel", title: "Ana Panel", permission: "screen.dashboard", icon: House },
+  { path: "muhasebe", title: "Muhasebe", permission: "screen.accounting", icon: LayoutDashboard },
+  { path: "insan-kaynaklari", title: "İnsan Kaynakları", permission: "screen.hr", icon: ContactRound },
+  { path: "kullanici-yetkileri", title: "Proje Yetkileri", superAdminOnly: true, icon: Boxes },
+  { path: "evidea", title: "Evidea", permission: "screen.evidea", icon: Sofa },
+  { path: "basbug", title: "Başbuğ", permission: "screen.basbug", icon: Truck },
 ];
+const managementItem = { path: "yonetim-paneli", title: "Yönetim" };
 
 function canSeeNavigation(session: CurrentSession, item: (typeof navigation)[number]) {
   if (item.superAdminOnly) return hasRole(session, ["super_admin"]);
@@ -137,7 +138,7 @@ function Layout() {
     () =>
       visibleNavigation.find((item) =>
         location.pathname.includes(item.path),
-      ) ?? navigation[0],
+      ) ?? (location.pathname.includes(managementItem.path) ? managementItem : navigation[0]),
     [location.pathname, visibleNavigation],
   );
 
@@ -159,13 +160,13 @@ function Layout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-6 px-5 lg:px-8">
+      <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/85 shadow-sm shadow-slate-200/40 backdrop-blur-2xl">
+        <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-5 px-5 lg:px-8">
           <NavLink
             to="/ana-panel"
             className="flex shrink-0 items-center gap-3"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-sm shadow-blue-600/20">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-sm font-black text-white shadow-lg shadow-blue-200">
               D
             </span>
 
@@ -179,39 +180,37 @@ function Layout() {
             </div>
           </NavLink>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-1 xl:flex">
-            {visibleNavigation.map((item) => (
+          <nav className="mx-auto hidden min-w-0 items-center gap-1 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1.5 xl:flex">
+            {visibleNavigation.map((item) => {
+              const Icon = item.icon;
+              return (
               <NavLink
                 key={item.path}
                 to={`/${item.path}`}
                 className={({ isActive }) =>
                   [
-                    "rounded-lg px-3 py-2 text-sm font-semibold transition",
+                    "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition",
                     isActive
-                      ? "bg-slate-100 text-slate-950"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
+                      ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200"
+                      : "text-slate-500 hover:bg-white/70 hover:text-slate-900",
                   ].join(" ")
                 }
               >
-                {item.title}
+                <Icon className="h-4 w-4" />{item.title}
               </NavLink>
-            ))}
+            )})}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="relative hidden lg:block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-              <input
-                type="search"
-                placeholder="Ara..."
-                className="h-9 w-56 rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-              />
-            </div>
+            {hasRole(session, ["super_admin"]) ? (
+              <NavLink to="/yonetim-paneli" title="Yönetim" aria-label="Yönetim" className={({isActive}) => `grid h-10 w-10 place-items-center rounded-xl border transition ${isActive ? "border-blue-200 bg-blue-50 text-blue-700 ring-4 ring-blue-100" : "border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"}`}>
+                <ShieldCheck className="h-[18px] w-[18px]" />
+              </NavLink>
+            ) : null}
 
             <button
               type="button"
-              className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+              className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
               aria-label="Bildirimler"
             >
               <Bell className="h-4 w-4" />
@@ -222,7 +221,7 @@ function Layout() {
               <DropdownMenu.Trigger asChild>
                 <button
                   type="button"
-                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 pr-3 text-left transition hover:bg-slate-50"
+                  className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 pr-3 text-left transition hover:border-blue-200 hover:bg-blue-50/50"
                 >
                   <span className="grid h-7 w-7 place-items-center rounded-lg bg-slate-900 text-[10px] font-bold text-white">
                     {initials}
@@ -299,7 +298,7 @@ function Layout() {
         {mobileMenuOpen ? (
           <div className="border-t border-slate-200 bg-white px-5 py-3 xl:hidden">
             <nav className="mx-auto grid max-w-[1600px] gap-1 sm:grid-cols-2 lg:grid-cols-4">
-              {visibleNavigation.map((item) => (
+              {visibleNavigation.map((item) => { const Icon = item.icon; return (
                 <NavLink
                   key={item.path}
                   to={`/${item.path}`}
@@ -312,9 +311,9 @@ function Layout() {
                     ].join(" ")
                   }
                 >
-                  {item.title}
+                  <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{item.title}</span>
                 </NavLink>
-              ))}
+              )})}
             </nav>
           </div>
         ) : null}
@@ -399,27 +398,6 @@ export function App() {
   element={<PermissionOnly permission="screen.hr"><InsanKaynaklariPage /></PermissionOnly>}
 />
 
-          {navigation
-            .filter(
-  (item) =>
-    item.path !== "ana-panel" &&
-    item.path !== "operasyon-kayitlari" &&
-    item.path !== "yonetim-paneli" &&
-    item.path !== "kullanici-yetkileri" &&
-    item.path !== "evidea" &&
-    item.path !== "basbug",
-)
-            .map((item) => (
-              <Route
-                key={item.path}
-                path={item.path}
-                element={
-                  <PermissionOnly permission={item.permission}>
-                    <PlaceholderPage title={item.title} />
-                  </PermissionOnly>
-                }
-              />
-            ))}
         </Route>
       </Route>
 
