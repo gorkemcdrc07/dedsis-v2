@@ -11,11 +11,13 @@ import {
     CircleDollarSign,
     Filter,
     LoaderCircle,
+    ReceiptText,
     PackageCheck,
     RefreshCw,
     Search,
     Sparkles,
     TrendingUp,
+    UsersRound,
 } from "lucide-react";
 import {
     Fragment,
@@ -34,6 +36,7 @@ import {
     getSyncJob,
     syncDashboard,
     getDashboardProjectSourceDetail,
+    type DashboardProjectSourceDetail,
 } from "../features/dashboard/dashboard.api";
 
 import { useDashboard } from "../features/dashboard/useDashboard";
@@ -753,9 +756,10 @@ function ProjectTable({
                                             </div>
                                             {projectSourceDetailQuery.isLoading ? <div className="mb-4 flex items-center gap-2 rounded-2xl border border-blue-100 bg-white p-4 text-sm font-bold text-blue-700"><LoaderCircle className="h-4 w-4 animate-spin" />Kaynak ayrıntıları hazırlanıyor...</div> : null}
                                             {projectSourceDetailQuery.isError ? <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">Proje kaynak ayrıntıları alınamadı.</div> : null}
+                                            {projectSourceDetailQuery.data ? <ProjectSourceCards data={projectSourceDetailQuery.data} /> : null}
 
-                                            <div className="
-                grid
+                                            {false ? <div className="
+                hidden
                 grid-cols-1
                 md:grid-cols-2
                 gap-4
@@ -783,7 +787,7 @@ function ProjectTable({
                                                         {
                                                             projectSourceDetailQuery.data?.ik?.length
                                                                 ?
-                                                                projectSourceDetailQuery.data.ik.map(
+                                                                projectSourceDetailQuery.data?.ik.map(
                                                                     (item: any, index: number) => (
                                                                         <div
                                                                             key={index}
@@ -858,7 +862,7 @@ function ProjectTable({
                                                         {
                                                             projectSourceDetailQuery.data?.muhasebe?.length
                                                                 ?
-                                                                projectSourceDetailQuery.data.muhasebe.map(
+                                                                projectSourceDetailQuery.data?.muhasebe.map(
                                                                     (item: any, index: number) => (
                                                                         <div
                                                                             key={index}
@@ -934,7 +938,7 @@ function ProjectTable({
                                                     </div>
                                                 </div>
 
-                                            </div>
+                                            </div> : null}
 
                                         </td>
                                     </tr>
@@ -948,6 +952,26 @@ function ProjectTable({
         </div>
         </div>
     );
+}
+
+function ProjectSourceCards({ data }: { data: DashboardProjectSourceDetail }) {
+    return <div className="grid items-start gap-4 xl:grid-cols-3">
+        <article className="overflow-hidden rounded-3xl border border-violet-200/70 bg-gradient-to-br from-white to-violet-50/70 shadow-sm">
+            <header className="flex items-start justify-between border-b border-violet-100 p-5"><div><div className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-600">Personel maliyetleri</div><h5 className="mt-1 text-lg font-black text-slate-950">İnsan Kaynakları</h5><p className="mt-1 text-xs text-slate-500">{data.ik.length} dağıtım kaydı</p></div><span className="grid h-11 w-11 place-items-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-200"><UsersRound className="h-5 w-5" /></span></header>
+            <div className="p-5"><div className="rounded-2xl bg-violet-600 p-4 text-white"><span className="text-[10px] font-black uppercase tracking-wider text-violet-200">İK toplamı</span><strong className="mt-1 block text-2xl font-black">{formatCurrency(data.toplamlar.ik ?? 0)}</strong></div>
+            {data.ik.length ? <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">{data.ik.map((item, index) => <div key={`${item.personel}-${index}`} className="rounded-2xl border border-white bg-white/90 p-3 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-black text-slate-800">{item.personel || "İsimsiz personel"}</p><span className="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">%{item.oran} dağılım</span></div><strong className="shrink-0 text-sm text-slate-950">{formatCurrency(Number(item.tutar ?? 0))}</strong></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-violet-500" style={{ width: `${Math.min(100, Math.max(0, Number(item.oran) || 0))}%` }} /></div></div>)}</div> : <EmptySource text="İK dağılımı bulunamadı." />}</div>
+        </article>
+        <article className="overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-white to-amber-50/70 shadow-sm">
+            <header className="flex items-start justify-between border-b border-amber-100 p-5"><div><div className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">Ek giderler</div><h5 className="mt-1 text-lg font-black text-slate-950">Muhasebe</h5><p className="mt-1 text-xs text-slate-500">{data.muhasebe.length} dağıtım kaydı</p></div><span className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-200"><ReceiptText className="h-5 w-5" /></span></header>
+            <div className="p-5"><div className="rounded-2xl bg-amber-500 p-4 text-white"><span className="text-[10px] font-black uppercase tracking-wider text-amber-100">Muhasebe toplamı</span><strong className="mt-1 block text-2xl font-black">{formatCurrency(data.toplamlar.muhasebe ?? 0)}</strong></div>
+            {data.muhasebe.length ? <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">{data.muhasebe.map((item: { hesap?: string; aciklama?: string; oran?: number; tutar?: number }, index: number) => <div key={`${item.hesap}-${index}`} className="rounded-2xl border border-white bg-white/90 p-3 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-black text-slate-800">{item.hesap || "Muhasebe kaydı"}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{item.aciklama || "Açıklama bulunmuyor"}</p></div><strong className="shrink-0 text-sm text-slate-950">{formatCurrency(Number(item.tutar ?? 0))}</strong></div><span className="mt-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">%{item.oran ?? 0} dağılım</span></div>)}</div> : <EmptySource text="Muhasebe dağılımı bulunamadı." />}</div>
+        </article>
+        <ReelOperationCard data={data.reel} />
+    </div>;
+}
+
+function EmptySource({ text }: { text: string }) {
+    return <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center text-xs font-medium text-slate-400">{text}</div>;
 }
 
 export function DashboardPage() {
