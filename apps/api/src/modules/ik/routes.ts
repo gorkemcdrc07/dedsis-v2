@@ -3,6 +3,7 @@
 import {
     requireUser
 } from "../../common/auth.js";
+import { requirePermission } from "../../common/authorization.js";
 
 
 import {
@@ -12,7 +13,8 @@ import {
     createIKDistribution,
     createIKAutoDistribution,
     getIKDefaultDistribution,
-    deleteIKDistribution
+    deleteIKDistribution,
+    deleteIKPeriod
 } from "./service.js";
 
 
@@ -46,8 +48,8 @@ export async function ikRoutes(
             await requireUser(request);
 
 
-            const data =
-                await getIKKayitlari();
+            const { ay, yil } = request.query as { ay?:string; yil?:string };
+            const data = await getIKKayitlari({ ay:ay ? Number(ay) : undefined, yil:yil ? Number(yil) : undefined });
 
 
             return {
@@ -70,8 +72,8 @@ export async function ikRoutes(
             await requireUser(request);
 
 
-            const data =
-                await getIKImports();
+            const { ay, yil } = request.query as { ay?:string; yil?:string };
+            const data = await getIKImports({ ay:ay ? Number(ay) : undefined, yil:yil ? Number(yil) : undefined });
 
 
             return {
@@ -92,7 +94,7 @@ export async function ikRoutes(
         async(request)=>{
 
 
-            await requireUser(request);
+            await requirePermission(request, "hr.import");
 
 
             const body =
@@ -133,7 +135,7 @@ export async function ikRoutes(
         async(request)=>{
 
 
-            await requireUser(request);
+            await requirePermission(request, "hr.assign");
 
 
             const body =
@@ -164,7 +166,7 @@ export async function ikRoutes(
         async(request)=>{
 
 
-            await requireUser(request);
+            await requirePermission(request, "hr.assign");
 
 
             const body =
@@ -251,7 +253,7 @@ export async function ikRoutes(
         async(request)=>{
 
 
-            await requireUser(request);
+            await requirePermission(request, "hr.delete");
 
 
             const params =
@@ -280,6 +282,16 @@ export async function ikRoutes(
 
         }
     );
+
+    app.delete("/period", async(request) => {
+        await requirePermission(request, "hr.delete");
+        const { ay, yil } = request.query as { ay?:string; yil?:string };
+        const month = Number(ay); const year = Number(yil);
+        if(!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2000){
+            throw Object.assign(new Error("Geçerli bir dönem seçin."), { statusCode:400 });
+        }
+        return { success:true, data:await deleteIKPeriod({ ay:month, yil:year }) };
+    });
 
 
 }

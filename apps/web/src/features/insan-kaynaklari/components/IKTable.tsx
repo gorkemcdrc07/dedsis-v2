@@ -29,6 +29,10 @@ type Props = {
 
     onSaved:()=>Promise<void>;
 
+    onProcess?:(state:{open:boolean;title:string;message:string;percent:number})=>void;
+
+    canAssign?:boolean;
+
 };
 
 
@@ -46,7 +50,9 @@ export function IKTable({
     selectedIds,
     onSelect,
     projectNames,
-    onSaved
+    onSaved,
+    onProcess,
+    canAssign=true
 }:Props){
 
 
@@ -119,6 +125,8 @@ async function autoDistribute(){
 
         setError(null);
 
+        onProcess?.({open:true,title:"Personeller dağıtılıyor",message:`${selectedIds.length} personelin proje yetkileri hesaplanıyor.`,percent:45});
+
 
         const result =
             await createIKAutoDistribution({
@@ -130,6 +138,8 @@ async function autoDistribute(){
 
 
         if(result.warning){
+
+            onProcess?.({open:false,title:"",message:"",percent:0});
 
             setError(
                 result.message +
@@ -152,8 +162,12 @@ async function autoDistribute(){
 
         await onSaved();
 
+        onProcess?.({open:true,title:"Dağıtım tamamlandı",message:`${selectedIds.length} personelin proje maliyetleri başarıyla dağıtıldı.`,percent:100});
+
     }
     catch(error){
+
+        onProcess?.({open:false,title:"",message:"",percent:0});
 
         setError(
             error instanceof Error
@@ -662,22 +676,10 @@ return (
 
 <>
 
-<div className="
-rounded-3xl
-border
-bg-white
-shadow-sm
-overflow-hidden
-">
+<div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
 
-<div className="
-flex
-items-center
-justify-between
-border-b
-p-4
-">
+<div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 p-4 sm:p-5">
 
 <div className="
 text-sm
@@ -687,40 +689,26 @@ text-slate-500
 </div>
 
 
-<button
+{canAssign ? <button
 type="button"
 onClick={autoDistribute}
 disabled={
     saving ||
     selectedIds.length===0
 }
-className="
-rounded-xl
-bg-blue-600
-px-4
-py-2
-text-sm
-font-semibold
-text-white
-disabled:opacity-50
-"
+className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-50"
 >
-Seçilenleri Otomatik Dağıt
-</button>
+{saving ? "Dağıtım yapılıyor…" : "Seçilenleri otomatik dağıt"}
+</button> : null}
 
 
 </div>
 
 
-<table className="
-w-full
-text-sm
-">
+<div className="max-h-[720px] overflow-auto">
+<table className="w-full min-w-[1100px] text-sm">
 
-<thead className="
-bg-slate-50
-text-slate-500
-">
+<thead className="sticky top-0 z-10 bg-slate-50/95 text-slate-500 backdrop-blur">
 
 <tr>
 
@@ -767,10 +755,7 @@ rows.map(row=>(
 
 <tr
 key={row.id}
-className="
-border-t
-hover:bg-slate-50/70
-"
+className="border-t border-slate-100 [content-visibility:auto] transition hover:bg-violet-50/40"
 >
 
 <td className="p-4">
@@ -778,7 +763,7 @@ hover:bg-slate-50/70
 <input
 type="checkbox"
 disabled={
-    row.dagitimDurumu === "dagitildi"
+    !canAssign || row.dagitimDurumu === "dagitildi"
 }
 checked={
     selectedIds.includes(
@@ -1005,6 +990,7 @@ Detay
 </tbody>
 
 </table>
+</div>
 
 </div>
 

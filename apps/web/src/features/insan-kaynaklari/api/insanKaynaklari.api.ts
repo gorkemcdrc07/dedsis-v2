@@ -18,10 +18,14 @@ type IKAutoDistributionResponse = {
 
 
 
-export async function getIKKayitlari(){
+export async function getIKKayitlari(params?:{ay?:number;yil?:number}){
+
+    const query = new URLSearchParams();
+    if(params?.ay) query.set("ay", String(params.ay));
+    if(params?.yil) query.set("yil", String(params.yil));
 
     return api<any[]>(
-        "/api/v1/ik/kayitlar"
+        `/api/v1/ik/kayitlar?${query.toString()}`
     );
 
 }
@@ -29,12 +33,20 @@ export async function getIKKayitlari(){
 
 
 
-export async function getIKImports(){
+export async function getIKImports(params?:{ay?:number;yil?:number}){
+
+    const query = new URLSearchParams();
+    if(params?.ay) query.set("ay", String(params.ay));
+    if(params?.yil) query.set("yil", String(params.yil));
 
     return api<any[]>(
-        "/api/v1/ik/imports"
+        `/api/v1/ik/imports?${query.toString()}`
     );
 
+}
+
+export async function deleteIKPeriod(ay:number, yil:number){
+    return api<{deletedRecords:number}>(`/api/v1/ik/period?ay=${ay}&yil=${yil}`, { method:"DELETE" });
 }
 
 

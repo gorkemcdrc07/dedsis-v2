@@ -71,32 +71,18 @@ async function findEmployeeId(
 
 }
 
-export async function getIKKayitlari(){
+export async function getIKKayitlari(params?:{ ay?:number; yil?:number }){
 
 
-    const {
-        data,
-        error
-    } =
-    await supabaseAdmin
-    .from(
-        "ik_kayitlari"
-    )
-    .select("*")
-    .order(
-        "id",
-        {
-            ascending:false
-        }
-    );
-
-
-    if(error){
-
-        throw new Error(
-            error.message
-        );
-
+    const data:any[] = [];
+    for(let from = 0; ; from += 1000){
+        let query = supabaseAdmin.from("ik_kayitlari").select("*").order("id", { ascending:false });
+        if(params?.ay) query = query.eq("donem_ay", params.ay);
+        if(params?.yil) query = query.eq("donem_yil", params.yil);
+        const { data:page, error } = await query.range(from, from + 999);
+        if(error) throw new Error(error.message);
+        data.push(...(page ?? []));
+        if((page?.length ?? 0) < 1000) break;
     }
 
 
@@ -117,28 +103,14 @@ export async function getIKKayitlari(){
 
 
 
-    const {
-        data:dagitimlar,
-        error:dagitimError
-    } =
-    await supabaseAdmin
-    .from(
-        "ik_proje_dagilimlari"
-    )
-    .select("*")
-    .in(
-        "ik_kayit_id",
-        ids
-    );
-
-
-
-    if(dagitimError){
-
-        throw new Error(
-            dagitimError.message
-        );
-
+    const dagitimlar:any[] = [];
+    for(let index = 0; index < ids.length; index += 500){
+        const { data:chunk, error:dagitimError } = await supabaseAdmin
+            .from("ik_proje_dagilimlari")
+            .select("*")
+            .in("ik_kayit_id", ids.slice(index, index + 500));
+        if(dagitimError) throw new Error(dagitimError.message);
+        dagitimlar.push(...(chunk ?? []));
     }
 
 
@@ -185,7 +157,7 @@ export async function getIKKayitlari(){
 
 
             const rowDagitimlari =
-                (dagitimlar ?? [])
+                dagitimlar
                 .filter(
                     x=>
                     x.ik_kayit_id === row.id
@@ -251,25 +223,16 @@ export async function getIKKayitlari(){
 }
 
 
-export async function getIKImports(){
+export async function getIKImports(params?:{ ay?:number; yil?:number }){
 
 
+    let query = supabaseAdmin.from("ik_importlar").select("*").order("id", { ascending:false }).limit(100);
+    if(params?.ay) query = query.eq("donem_ay", params.ay);
+    if(params?.yil) query = query.eq("donem_yil", params.yil);
     const {
         data,
         error
-    } =
-    await supabaseAdmin
-    .from(
-        "ik_importlar"
-    )
-    .select("*")
-    .order(
-        "id",
-        {
-            ascending:false
-        }
-    )
-    .limit(20);
+    } = await query;
 
 
 
@@ -284,6 +247,25 @@ export async function getIKImports(){
 
     return data ?? [];
 
+}
+
+export async function deleteIKPeriod(params:{ ay:number; yil:number }){
+    const ids:Array<number> = [];
+    for(let from = 0; ; from += 1000){
+        const { data, error } = await supabaseAdmin.from("ik_kayitlari").select("id").eq("donem_ay", params.ay).eq("donem_yil", params.yil).range(from, from + 999);
+        if(error) throw new Error(error.message);
+        ids.push(...(data ?? []).map((row) => Number(row.id)));
+        if((data?.length ?? 0) < 1000) break;
+    }
+    for(let index = 0; index < ids.length; index += 500){
+        const { error } = await supabaseAdmin.from("ik_proje_dagilimlari").delete().in("ik_kayit_id", ids.slice(index, index + 500));
+        if(error) throw new Error(error.message);
+    }
+    const { error:recordsError } = await supabaseAdmin.from("ik_kayitlari").delete().eq("donem_ay", params.ay).eq("donem_yil", params.yil);
+    if(recordsError) throw new Error(recordsError.message);
+    const { error:importsError } = await supabaseAdmin.from("ik_importlar").delete().eq("donem_ay", params.ay).eq("donem_yil", params.yil);
+    if(importsError) throw new Error(importsError.message);
+    return { deletedRecords:ids.length };
 }
 
 
