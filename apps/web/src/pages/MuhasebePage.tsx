@@ -70,8 +70,9 @@ export default function MuhasebePage() {
 
   const selectedRows = useMemo(() => rows.filter((row) => selectedIds.includes(String(row.id))), [rows, selectedIds]);
   async function distribute(distribution: any[]) {
+    const completedIds = new Set(selectedRows.map((row) => String(row.id)));
     setProcess({ open: true, title: "Dağıtım yapılıyor", message: "Kayıtlar projelere dağıtılıyor.", percent: 50 });
-    try { await saveMuhasebeDistribution({ records: selectedRows, distribution }); setProcess({ open: true, title: "Tamamlandı", message: "Dağıtım tamamlandı.", percent: 100 }); setSelectedIds([]); await load(); }
+    try { await saveMuhasebeDistribution({ records: selectedRows, distribution }); setRows((current) => current.filter((row) => !completedIds.has(String(row.id)))); setProcess({ open: true, title: "Tamamlandı", message: `${completedIds.size} kayıt dağıtıldı ve bekleyen listesinden kaldırıldı.`, percent: 100 }); setSelectedIds([]); }
     catch (error) { setProcess((value) => ({ ...value, open: false })); toast.error(error instanceof Error ? error.message : "Dağıtım yapılamadı."); }
   }
 
