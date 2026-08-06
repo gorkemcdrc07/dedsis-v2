@@ -4,12 +4,17 @@ import {
     ArrowDownRight,
     ArrowUpRight,
     Banknote,
+    BriefcaseBusiness,
     CalendarDays,
     ChevronDown,
     ChevronRight,
     CircleDollarSign,
+    Filter,
+    LoaderCircle,
     PackageCheck,
     RefreshCw,
+    Search,
+    Sparkles,
     TrendingUp,
 } from "lucide-react";
 import {
@@ -19,19 +24,6 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-    PieChart,
-    Pie,
-    Cell,
-    Legend,
-} from "recharts";
 
 import type {
     DashboardMetric,
@@ -41,169 +33,11 @@ import {
     getDashboardProjectDetail,
     getSyncJob,
     syncDashboard,
-    getDashboardSourceSummary,
     getDashboardProjectSourceDetail,
 } from "../features/dashboard/dashboard.api";
 
 import { useDashboard } from "../features/dashboard/useDashboard";
 import { ReelOperationCard } from "../features/dashboard/components/ReelOperationCard";
-
-function ProfitChart({
-    projects,
-}: {
-    projects: DashboardProjectRow[];
-}) {
-    const data = projects
-        .slice()
-        .sort((a, b) => b.profit - a.profit)
-        .slice(0, 8)
-        .map((project) => ({
-            name: shortenText(project.projectName),
-            fullName: project.projectName,
-            profit: project.profit,
-        }));
-
-    return (
-        <div className="h-80">
-            <ResponsiveContainer
-                width="100%"
-                height="100%"
-            >
-                <BarChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 11 }}
-                    />
-                    <YAxis />
-                    <Tooltip
-                        formatter={(value) =>
-                            formatChartCurrency(Number(value))
-                        }
-                    />
-                    <Bar dataKey="profit" />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    );
-}
-
-function ProjectStatusChart({
-    projects,
-}: {
-    projects: DashboardProjectRow[];
-}) {
-    const COLORS = [
-        "#10b981",
-        "#f59e0b",
-        "#ef4444",
-    ];
-
-    const data = [
-        {
-            name: "Sağlıklı",
-            value: projects.filter(
-                (project) =>
-                    project.profitRate >= 20,
-            ).length,
-        },
-        {
-            name: "Takip",
-            value: projects.filter(
-                (project) =>
-                    project.profitRate >= 5 &&
-                    project.profitRate < 20,
-            ).length,
-        },
-        {
-            name: "Risk",
-            value: projects.filter(
-                (project) =>
-                    project.profitRate < 5,
-            ).length,
-        },
-    ];
-
-    return (
-        <div className="h-80">
-            <ResponsiveContainer
-                width="100%"
-                height="100%"
-            >
-                <PieChart>
-                    <Pie
-                        data={data}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        label
-                    >
-                        {data.map((_, index) => (
-                            <Cell
-                                key={index}
-                                fill={COLORS[index]}
-                            />
-                        ))}
-                    </Pie>
-
-                    <Tooltip />
-
-                    <Legend />
-                </PieChart>
-            </ResponsiveContainer>
-        </div>
-    );
-}
-
-function ShipmentChart({
-    projects,
-}: {
-    projects: DashboardProjectRow[];
-}) {
-    const data = projects
-        .slice()
-        .sort(
-            (a, b) =>
-                b.shipmentCount -
-                a.shipmentCount,
-        )
-        .slice(0, 8)
-        .map((project) => ({
-            name: shortenText(project.projectName),
-            fullName: project.projectName,
-            shipment: project.shipmentCount,
-        }));
-
-    return (
-        <div className="h-80">
-            <ResponsiveContainer
-                width="100%"
-                height="100%"
-            >
-                <BarChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-
-                    <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 11 }}
-                    />
-
-                    <YAxis />
-
-                    <Tooltip
-                        formatter={(value) =>
-                            formatChartNumber(Number(value))
-                        }
-                    />
-
-                    <Bar dataKey="shipment" />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    );
-}
 
 function toInputDate(date: Date): string {
     const year = date.getFullYear();
@@ -249,20 +83,6 @@ function formatPercent(value: number) {
 }
 
 
-function formatChartCurrency(value: number) {
-    return formatCurrency(value);
-}
-
-function formatChartNumber(value: number) {
-    return `${formatNumber(value)} sefer`;
-}
-function shortenText(value: string, max = 18) {
-    if (value.length <= max) {
-        return value;
-    }
-
-    return `${value.slice(0, max)}...`;
-}
 function getMetricIcon(key: string) {
     switch (key) {
         case "shipments":
@@ -372,32 +192,6 @@ function MetricCard({
 
             <div className="mt-1 text-sm font-medium text-slate-500">
                 {metric.label}
-            </div>
-        </article>
-    );
-}
-
-function ManagementCard({
-    title,
-    value,
-    description,
-}: {
-    title: string;
-    value: string;
-    description: string;
-}) {
-    return (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-            <div className="text-sm font-bold text-slate-500">
-                {title}
-            </div>
-
-            <div className="mt-4 text-xl font-extrabold tracking-tight text-slate-950">
-                {value}
-            </div>
-
-            <div className="mt-2 text-xs font-medium text-slate-500">
-                {description}
             </div>
         </article>
     );
@@ -622,18 +416,6 @@ function ProjectTable({
     }
 
 
-    const sourceSummaryQuery = useQuery({
-
-        queryKey: [
-            "dashboard-source-summary",
-        ],
-
-        queryFn:
-            getDashboardSourceSummary,
-
-    });
-
-
     const projectSourceDetailQuery = useQuery({
 
         queryKey: [
@@ -665,10 +447,6 @@ function ProjectTable({
 
     });
 
-    console.log(
-        "SOURCE DETAIL:",
-        projectSourceDetailQuery.data
-    );
     const projectDetailQuery = useQuery({
         queryKey: [
             "dashboard-project-detail",
@@ -772,6 +550,28 @@ function ProjectTable({
     }
 
     return (
+        <div>
+            <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Proje adına göre ara..."
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-medium outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Filter className="h-4 w-4 text-slate-400" />
+                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="all">Tüm durumlar</option><option value="healthy">Sağlıklı</option><option value="follow">Takip</option><option value="risk">Risk</option>
+                    </select>
+                    <select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="profit">Kâra göre sırala</option><option value="revenue">Gelire göre sırala</option><option value="shipment">Sefere göre sırala</option><option value="risk">Riske göre sırala</option>
+                    </select>
+                    <span className="rounded-xl bg-blue-50 px-3 py-2.5 text-xs font-black text-blue-700">{sortedProjects.length} proje</span>
+                </div>
+            </div>
         <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
                 <thead>
@@ -808,7 +608,7 @@ function ProjectTable({
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                    {sortedProjects.map((project, index) => {
+                    {sortedProjects.map((project) => {
                         const isExpanded =
                             expandedProjectId ===
                             project.projectId;
@@ -928,6 +728,11 @@ function ProjectTable({
                                             )}
                                         </span>
                                     </td>
+                                    <td className="whitespace-nowrap px-5 py-4 text-right">
+                                        <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-black", getProjectStatus(project.profitRate).className].join(" ")}>
+                                            {getProjectStatus(project.profitRate).text}
+                                        </span>
+                                    </td>
                                 </tr>
 
                                 {isExpanded ? (
@@ -936,8 +741,18 @@ function ProjectTable({
 
                                         <td
                                             colSpan={8}
-                                            className="bg-slate-50 px-5 py-5"
+                                            className="bg-gradient-to-b from-blue-50/70 to-slate-50 px-5 py-6"
                                         >
+                                            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <div><div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-blue-600"><BriefcaseBusiness className="h-4 w-4" />Proje maliyet merkezi</div><h4 className="mt-1 text-lg font-black text-slate-950">{project.projectName} ayrıntıları</h4><p className="mt-1 text-xs text-slate-500">İnsan Kaynakları, muhasebe ve reel operasyon verileri tek görünümde.</p></div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="rounded-xl border border-white bg-white/90 px-3 py-2 shadow-sm"><span className="block text-[10px] font-bold text-slate-400">GELİR</span><b className="text-xs text-emerald-700">{formatCurrency(project.revenue)}</b></div>
+                                                    <div className="rounded-xl border border-white bg-white/90 px-3 py-2 shadow-sm"><span className="block text-[10px] font-bold text-slate-400">GİDER</span><b className="text-xs text-rose-700">{formatCurrency(project.expense)}</b></div>
+                                                    <div className="rounded-xl border border-white bg-white/90 px-3 py-2 shadow-sm"><span className="block text-[10px] font-bold text-slate-400">NET KÂR</span><b className={project.profit >= 0 ? "text-xs text-emerald-700" : "text-xs text-rose-700"}>{formatCurrency(project.profit)}</b></div>
+                                                </div>
+                                            </div>
+                                            {projectSourceDetailQuery.isLoading ? <div className="mb-4 flex items-center gap-2 rounded-2xl border border-blue-100 bg-white p-4 text-sm font-bold text-blue-700"><LoaderCircle className="h-4 w-4 animate-spin" />Kaynak ayrıntıları hazırlanıyor...</div> : null}
+                                            {projectSourceDetailQuery.isError ? <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">Proje kaynak ayrıntıları alınamadı.</div> : null}
 
                                             <div className="
                 grid
@@ -948,10 +763,10 @@ function ProjectTable({
 
 
                                                 <div className="
-                    rounded-2xl
-                    border
+                    rounded-3xl
+                    border border-slate-200/80
                     bg-white
-                    p-5
+                    p-5 shadow-sm
                 ">
 
                                                     <h4 className="
@@ -1023,10 +838,10 @@ function ProjectTable({
 
 
                                                 <div className="
-                    rounded-2xl
-                    border
+                    rounded-3xl
+                    border border-slate-200/80
                     bg-white
-                    p-5
+                    p-5 shadow-sm
                 ">
 
                                                     <h4 className="
@@ -1130,6 +945,7 @@ function ProjectTable({
                     })}
                 </tbody>
             </table>
+        </div>
         </div>
     );
 }
@@ -1392,96 +1208,18 @@ export function DashboardPage() {
                         )}
                     </div>
 
-                    <div className="mt-6 grid gap-6 xl:grid-cols-2">
-                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <div className="mb-4">
-                                <h3 className="font-extrabold text-slate-950">
-                                    Proje Kârlılık Analizi
-                                </h3>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    En yüksek kâr üreten ilk projeler
-                                </p>
-                            </div>
-
-                            <ProfitChart
-                                projects={dashboard.projects}
-                            />
-                        </article>
-
-                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <div className="mb-4">
-                                <h3 className="font-extrabold text-slate-950">
-                                    Proje Durum Dağılımı
-                                </h3>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Sağlıklı, takip ve risk dağılımı
-                                </p>
-                            </div>
-
-                            <ProjectStatusChart
-                                projects={dashboard.projects}
-                            />
-                        </article>
-                    </div>
-
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        <ManagementCard
-                            title="En Kârlı Proje"
-                            value={
-                                dashboard.management.bestProjectName ??
-                                "-"
-                            }
-                            description={
-                                formatCurrency(
-                                    dashboard.management.bestProjectProfit,
-                                )
-                            }
-                        />
-
-                        <ManagementCard
-                            title="Ortalama Kâr Oranı"
-                            value={
-                                `%${formatPercent(
-                                    dashboard.management.averageProfitRate,
-                                )}`
-                            }
-                            description="Projelerin ortalama kârlılık oranı"
-                        />
-
-                        <ManagementCard
-                            title="Riskli Proje"
-                            value={
-                                formatNumber(
-                                    dashboard.management.riskProjectCount,
-                                )
-                            }
-                            description="Takip edilmesi gereken proje sayısı"
-                        />
-                    </div>
-
-                    <article className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="mb-4">
-                            <h3 className="font-extrabold text-slate-950">
-                                Sefer Yoğunluğu
-                            </h3>
-                            <p className="mt-1 text-xs text-slate-500">
-                                En fazla operasyon yapan projeler
-                            </p>
-                        </div>
-
-                        <ShipmentChart
-                            projects={dashboard.projects}
-                        />
-                    </article>
-
-                    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center">
+                    <article className="mt-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50">
+                        <div className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 px-6 py-7 text-white sm:px-8">
+                            <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
+                            <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                             <div>
-                                <h3 className="font-extrabold text-slate-950">
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-blue-100">
+                                    <Sparkles className="h-3.5 w-3.5" /> Canlı finans görünümü
+                                </div>
+                                <h3 className="text-2xl font-black tracking-tight">
                                     Proje bazlı kârlılık
                                 </h3>
-
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-2 text-sm text-slate-300">
                                     {dashboard.period.startDate}
                                     {" – "}
                                     {dashboard.period.endDate}
@@ -1491,18 +1229,19 @@ export function DashboardPage() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur">
                                 <span
                                     className={[
                                         "h-2 w-2 rounded-full",
                                         dashboard.system.api ===
                                             "online"
-                                            ? "bg-emerald-500"
-                                            : "bg-amber-500",
+                                            ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]"
+                                            : "bg-amber-400",
                                     ].join(" ")}
                                 />
 
-                                API: {dashboard.system.api}
+                                Veri bağlantısı: {dashboard.system.api}
+                            </div>
                             </div>
                         </div>
 

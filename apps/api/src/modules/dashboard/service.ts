@@ -100,7 +100,7 @@ export function normalizeLegacyRow(
             `row-${index}`,
         ),
         projectName: String(
-            row.ProjectName ?? "PROJESÄ°Z",
+            row.ProjectName ?? "PROJESİZ",
         ),
         plateNumber: String(
             row.PlateNumber ?? "-",
@@ -250,7 +250,7 @@ async function fetchDayWithRetry(
 
             throw Object.assign(
                 new Error(
-                    `Harici servis hatasÄ±: ${response.status}`,
+                    `Harici servis hatası: ${response.status}`,
                 ),
                 {
                     statusCode: 502,
@@ -649,7 +649,7 @@ async function fetchDashboardAggregates(
 
         throw Object.assign(
             new Error(
-                `Dashboard Ã¶zeti alÄ±namadÄ±: ${error.message}`,
+                `Dashboard özeti alınamadı: ${error.message}`,
             ),
             {
                 statusCode: 500,
@@ -698,7 +698,7 @@ async function getProjectMasters(): Promise<
     if (error) {
         throw Object.assign(
             new Error(
-                `Projeler alÄ±namadÄ±: ${error.message}`,
+                `Projeler alınamadı: ${error.message}`,
             ),
             {
                 statusCode: 500,
@@ -981,7 +981,7 @@ function aggregateProjects(
 
         if (!master) {
             console.warn(
-                "Dashboard eÅŸleÅŸmeyen proje:",
+                "Dashboard eşleşmeyen proje:",
                 row.projectName,
             );
 
@@ -1055,7 +1055,7 @@ function mapDashboardAggregatesToProjects(
         .map((row): DashboardProjectRow | null => {
             const sourceProjectName =
                 row.project_name?.trim() ||
-                "PROJESÄ°Z";
+                "PROJESİZ";
 
             const key = normalizeText(
                 sourceProjectName,
@@ -1069,7 +1069,7 @@ function mapDashboardAggregatesToProjects(
 
             if (!master) {
                 console.warn(
-                    "Dashboard eÅŸleÅŸmeyen proje:",
+                    "Dashboard eşleşmeyen proje:",
                     sourceProjectName,
                 );
 
@@ -1195,7 +1195,7 @@ function createProjectDetails(
                 master.proje_adi ??
                 String(
                     firstRow?.ProjectName ??
-                    "PROJESÄ°Z",
+                    "PROJESİZ",
                 ),
             realProjectName:
                 master.reel_proje_adi,
@@ -1233,7 +1233,7 @@ export async function getProjectDetail(
     ) {
         throw Object.assign(
             new Error(
-                "BaÅŸlangÄ±Ã§ tarihi bitiÅŸ tarihinden sonra olamaz.",
+                "Başlangıç tarihi bitiş tarihinden sonra olamaz.",
             ),
             {
                 statusCode: 400,
@@ -1249,7 +1249,7 @@ export async function getProjectDetail(
     if (dayCount > MAX_DATE_RANGE_DAYS) {
         throw Object.assign(
             new Error(
-                `En fazla ${MAX_DATE_RANGE_DAYS} gÃ¼nlÃ¼k tarih aralÄ±ÄŸÄ± seÃ§ilebilir.`,
+                `En fazla ${MAX_DATE_RANGE_DAYS} günlük tarih aralığı seçilebilir.`,
             ),
             {
                 statusCode: 400,
@@ -1268,7 +1268,7 @@ export async function getProjectDetail(
 
     if (!projectMaster) {
         throw Object.assign(
-            new Error("Proje bulunamadÄ±."),
+            new Error("Proje bulunamadı."),
             {
                 statusCode: 404,
             },
@@ -1319,7 +1319,7 @@ export async function getDashboard(
     if (startDate > endDate) {
         throw Object.assign(
             new Error(
-                "BaÅŸlangÄ±Ã§ tarihi bitiÅŸ tarihinden sonra olamaz.",
+                "Başlangıç tarihi bitiş tarihinden sonra olamaz.",
             ),
             {
                 statusCode: 400,
@@ -1335,7 +1335,7 @@ export async function getDashboard(
     if (dayCount > MAX_DATE_RANGE_DAYS) {
         throw Object.assign(
             new Error(
-                `En fazla ${MAX_DATE_RANGE_DAYS} gÃ¼nlÃ¼k tarih aralÄ±ÄŸÄ± seÃ§ilebilir.`,
+                `En fazla ${MAX_DATE_RANGE_DAYS} günlük tarih aralığı seçilebilir.`,
             ),
             {
                 statusCode: 400,
@@ -1507,7 +1507,7 @@ export async function getDashboard(
             },
             {
                 key: "profit",
-                label: "Toplam KÃ¢r",
+                label: "Toplam Kâr",
                 value: totals.profit,
                 formattedValue: formatCurrency(
                     totals.profit,
@@ -1517,7 +1517,7 @@ export async function getDashboard(
             },
             {
                 key: "profitRate",
-                label: "KÃ¢r MarjÄ±",
+                label: "Kâr Marjı",
                 value: profitRate,
                 formattedValue:
                     `${profitRate.toFixed(2)}%`,
