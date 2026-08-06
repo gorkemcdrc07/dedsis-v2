@@ -827,7 +827,7 @@ async function getMuhasebeExpenseMap(
         const v2Project =
             (projects ?? [])
                 .find(
-                    x => x.id === row.project_id
+                    x => String(x.id) === String(row.project_id)
                 );
 
 
@@ -1731,23 +1731,23 @@ async function getIkExpenseMap(
             .from("projeler")
             .select(`
                 id,
+                proje_adi,
                 reel_proje_adi
             `);
 
 
 
-    const masterMap =
-        new Map(
-            (masterProjects ?? [])
-                .map(
-                    x => [
-                        normalizeText(
-                            x.reel_proje_adi
-                        ),
-                        x.id
-                    ]
-                )
-        );
+    const masterMap = new Map<string, string | number>();
+
+    for (const project of masterProjects ?? []) {
+        if (project.reel_proje_adi) {
+            masterMap.set(normalizeText(project.reel_proje_adi), project.id);
+        }
+
+        if (project.proje_adi) {
+            masterMap.set(normalizeText(project.proje_adi), project.id);
+        }
+    }
 
 
 
@@ -1780,7 +1780,7 @@ async function getIkExpenseMap(
             (projects ?? [])
                 .find(
                     p =>
-                        p.id === x.project_id
+                        String(p.id) === String(x.project_id)
                 );
 
 
