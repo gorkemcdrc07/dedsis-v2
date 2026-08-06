@@ -18,6 +18,20 @@ import {
     useState,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
+} from "recharts";
 
 import type {
     DashboardMetric,
@@ -27,9 +41,169 @@ import {
     getDashboardProjectDetail,
     getSyncJob,
     syncDashboard,
+    getDashboardSourceSummary,
+    getDashboardProjectSourceDetail,
 } from "../features/dashboard/dashboard.api";
 
 import { useDashboard } from "../features/dashboard/useDashboard";
+import { ReelOperationCard } from "../features/dashboard/components/ReelOperationCard";
+
+function ProfitChart({
+    projects,
+}: {
+    projects: DashboardProjectRow[];
+}) {
+    const data = projects
+        .slice()
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 8)
+        .map((project) => ({
+            name: shortenText(project.projectName),
+            fullName: project.projectName,
+            profit: project.profit,
+        }));
+
+    return (
+        <div className="h-80">
+            <ResponsiveContainer
+                width="100%"
+                height="100%"
+            >
+                <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11 }}
+                    />
+                    <YAxis />
+                    <Tooltip
+                        formatter={(value) =>
+                            formatChartCurrency(Number(value))
+                        }
+                    />
+                    <Bar dataKey="profit" />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function ProjectStatusChart({
+    projects,
+}: {
+    projects: DashboardProjectRow[];
+}) {
+    const COLORS = [
+        "#10b981",
+        "#f59e0b",
+        "#ef4444",
+    ];
+
+    const data = [
+        {
+            name: "Sağlıklı",
+            value: projects.filter(
+                (project) =>
+                    project.profitRate >= 20,
+            ).length,
+        },
+        {
+            name: "Takip",
+            value: projects.filter(
+                (project) =>
+                    project.profitRate >= 5 &&
+                    project.profitRate < 20,
+            ).length,
+        },
+        {
+            name: "Risk",
+            value: projects.filter(
+                (project) =>
+                    project.profitRate < 5,
+            ).length,
+        },
+    ];
+
+    return (
+        <div className="h-80">
+            <ResponsiveContainer
+                width="100%"
+                height="100%"
+            >
+                <PieChart>
+                    <Pie
+                        data={data}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label
+                    >
+                        {data.map((_, index) => (
+                            <Cell
+                                key={index}
+                                fill={COLORS[index]}
+                            />
+                        ))}
+                    </Pie>
+
+                    <Tooltip />
+
+                    <Legend />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function ShipmentChart({
+    projects,
+}: {
+    projects: DashboardProjectRow[];
+}) {
+    const data = projects
+        .slice()
+        .sort(
+            (a, b) =>
+                b.shipmentCount -
+                a.shipmentCount,
+        )
+        .slice(0, 8)
+        .map((project) => ({
+            name: shortenText(project.projectName),
+            fullName: project.projectName,
+            shipment: project.shipmentCount,
+        }));
+
+    return (
+        <div className="h-80">
+            <ResponsiveContainer
+                width="100%"
+                height="100%"
+            >
+                <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" />
+
+                    <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11 }}
+                    />
+
+                    <YAxis />
+
+                    <Tooltip
+                        formatter={(value) =>
+                            formatChartNumber(Number(value))
+                        }
+                    />
+
+                    <Bar dataKey="shipment" />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
 
 function toInputDate(date: Date): string {
     const year = date.getFullYear();
@@ -74,6 +248,21 @@ function formatPercent(value: number) {
     }).format(value);
 }
 
+
+function formatChartCurrency(value: number) {
+    return formatCurrency(value);
+}
+
+function formatChartNumber(value: number) {
+    return `${formatNumber(value)} sefer`;
+}
+function shortenText(value: string, max = 18) {
+    if (value.length <= max) {
+        return value;
+    }
+
+    return `${value.slice(0, max)}...`;
+}
 function getMetricIcon(key: string) {
     switch (key) {
         case "shipments":
@@ -89,21 +278,68 @@ function getMetricIcon(key: string) {
     }
 }
 
+function getMetricStyle(key: string) {
+    switch (key) {
+        case "shipments":
+            return {
+                icon: "bg-blue-50 text-blue-700",
+                border: "border-blue-100",
+            };
+
+        case "revenue":
+            return {
+                icon: "bg-emerald-50 text-emerald-700",
+                border: "border-emerald-100",
+            };
+
+        case "expense":
+            return {
+                icon: "bg-rose-50 text-rose-700",
+                border: "border-rose-100",
+            };
+
+        case "profit":
+            return {
+                icon: "bg-green-50 text-green-700",
+                border: "border-green-100",
+            };
+
+        case "profitRate":
+            return {
+                icon: "bg-purple-50 text-purple-700",
+                border: "border-purple-100",
+            };
+
+        case "projects":
+            return {
+                icon: "bg-orange-50 text-orange-700",
+                border: "border-orange-100",
+            };
+
+        default:
+            return {
+                icon: "bg-slate-100 text-slate-700",
+                border: "border-slate-200",
+            };
+    }
+}
+
 function MetricCard({
     metric,
 }: {
     metric: DashboardMetric;
 }) {
     const Icon = getMetricIcon(metric.key);
+    const style = getMetricStyle(metric.key);
 
     const isPositive =
         metric.changeRate === null ||
         metric.changeRate >= 0;
 
     return (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className={["rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md", style.border].join(" ")}>
             <div className="flex items-start justify-between gap-4">
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-slate-700">
+                <div className={["grid h-11 w-11 place-items-center rounded-xl", style.icon].join(" ")}>
                     <Icon className="h-5 w-5" />
                 </div>
 
@@ -136,6 +372,32 @@ function MetricCard({
 
             <div className="mt-1 text-sm font-medium text-slate-500">
                 {metric.label}
+            </div>
+        </article>
+    );
+}
+
+function ManagementCard({
+    title,
+    value,
+    description,
+}: {
+    title: string;
+    value: string;
+    description: string;
+}) {
+    return (
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+            <div className="text-sm font-bold text-slate-500">
+                {title}
+            </div>
+
+            <div className="mt-4 text-xl font-extrabold tracking-tight text-slate-950">
+                {value}
+            </div>
+
+            <div className="mt-2 text-xs font-medium text-slate-500">
+                {description}
             </div>
         </article>
     );
@@ -311,15 +573,102 @@ function ProjectTable({
     projects,
     startDate,
     endDate,
+    navigate,
 }: {
     projects: DashboardProjectRow[];
     startDate: string;
     endDate: string;
-    }) {
+    navigate: ReturnType<typeof useNavigate>;
+}) {
     const [
         expandedProjectId,
         setExpandedProjectId,
     ] = useState<string | null>(null);
+    const [sortMode, setSortMode] =
+        useState<
+            "profit" | "shipment" | "revenue" | "risk"
+        >("profit");
+
+    const [searchTerm, setSearchTerm] =
+        useState("");
+
+    const [statusFilter, setStatusFilter] =
+        useState<
+            "all" | "healthy" | "follow" | "risk"
+        >("all");
+
+    function getProjectStatus(rate: number) {
+        if (rate >= 20) {
+            return {
+                text: "Sağlıklı",
+                className:
+                    "bg-emerald-50 text-emerald-700 border-emerald-200",
+            };
+        }
+
+        if (rate >= 5) {
+            return {
+                text: "Takip",
+                className:
+                    "bg-amber-50 text-amber-700 border-amber-200",
+            };
+        }
+
+        return {
+            text: "Risk",
+            className:
+                "bg-rose-50 text-rose-700 border-rose-200",
+        };
+    }
+
+
+    const sourceSummaryQuery = useQuery({
+
+        queryKey: [
+            "dashboard-source-summary",
+        ],
+
+        queryFn:
+            getDashboardSourceSummary,
+
+    });
+
+
+    const projectSourceDetailQuery = useQuery({
+
+        queryKey: [
+            "dashboard-project-source-detail",
+            expandedProjectId,
+            startDate,
+            endDate,
+        ],
+
+        queryFn: () => {
+
+            if (!expandedProjectId) {
+                throw new Error("Proje seçilmedi.");
+            }
+
+
+            return getDashboardProjectSourceDetail(
+                expandedProjectId,
+                startDate,
+                endDate,
+            );
+
+        },
+
+        enabled:
+            Boolean(expandedProjectId) &&
+            Boolean(startDate) &&
+            Boolean(endDate),
+
+    });
+
+    console.log(
+        "SOURCE DETAIL:",
+        projectSourceDetailQuery.data
+    );
     const projectDetailQuery = useQuery({
         queryKey: [
             "dashboard-project-detail",
@@ -346,7 +695,65 @@ function ProjectTable({
             Boolean(endDate),
     });
 
-    if (projects.length === 0) {
+    const filteredProjects = projects.filter((project) => {
+        const matchesSearch =
+            project.projectName
+                .toLocaleLowerCase("tr-TR")
+                .includes(
+                    searchTerm.toLocaleLowerCase("tr-TR"),
+                );
+
+        const status = getProjectStatus(
+            project.profitRate,
+        );
+
+        const matchesStatus =
+            statusFilter === "all" ||
+            (statusFilter === "healthy" &&
+                status.text === "Sağlıklı") ||
+            (statusFilter === "follow" &&
+                status.text === "Takip") ||
+            (statusFilter === "risk" &&
+                status.text === "Risk");
+
+        return (
+            matchesSearch &&
+            matchesStatus
+        );
+    });
+
+    const sortedProjects = filteredProjects
+        .slice()
+        .sort((a, b) => {
+            switch (sortMode) {
+                case "shipment":
+                    return (
+                        b.shipmentCount -
+                        a.shipmentCount
+                    );
+
+                case "revenue":
+                    return (
+                        b.revenue -
+                        a.revenue
+                    );
+
+                case "risk":
+                    return (
+                        a.profitRate -
+                        b.profitRate
+                    );
+
+                case "profit":
+                default:
+                    return (
+                        b.profit -
+                        a.profit
+                    );
+            }
+        });
+
+    if (sortedProjects.length === 0) {
         return (
             <div className="grid min-h-72 place-items-center px-6 text-center">
                 <div>
@@ -394,11 +801,14 @@ function ProjectTable({
                         <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
                             Kâr Oranı
                         </th>
-                    </tr>
+
+                        <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Durum
+                        </th>         </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                    {projects.map((project) => {
+                    {sortedProjects.map((project, index) => {
                         const isExpanded =
                             expandedProjectId ===
                             project.projectId;
@@ -448,6 +858,13 @@ function ProjectTable({
                                     <td className="px-5 py-4">
                                         <button
                                             type="button"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+
+                                                navigate(
+                                                    `/operasyon-kayitlari?projectName=${encodeURIComponent(project.projectName)}`
+                                                );
+                                            }}
                                             className="text-left"
                                         >
                                             <div className="font-bold text-blue-700 transition hover:text-blue-900">
@@ -514,136 +931,199 @@ function ProjectTable({
                                 </tr>
 
                                 {isExpanded ? (
+
                                     <tr>
+
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="bg-slate-50 px-5 py-5"
                                         >
-                                            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                                                <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
-                                                    <div>
-                                                        <h4 className="font-extrabold text-slate-950">
-                                                            Sefer detayları
-                                                        </h4>
 
-                                                        <p className="mt-1 text-xs text-slate-500">
-                                                            {project.projectName}
-                                                            {" projesine ait "}
-                                                            {trips.length}
-                                                            {" sefer"}
-                                                        </p>
+                                            <div className="
+                grid
+                grid-cols-1
+                md:grid-cols-2
+                gap-4
+            ">
+
+
+                                                <div className="
+                    rounded-2xl
+                    border
+                    bg-white
+                    p-5
+                ">
+
+                                                    <h4 className="
+                        font-bold
+                        text-slate-900
+                        mb-4
+                    ">
+                                                        İnsan Kaynakları
+                                                    </h4>
+
+
+                                                    <div className="space-y-3 text-sm">
+
+                                                        {
+                                                            projectSourceDetailQuery.data?.ik?.length
+                                                                ?
+                                                                projectSourceDetailQuery.data.ik.map(
+                                                                    (item: any, index: number) => (
+                                                                        <div
+                                                                            key={index}
+                                                                            className="rounded-xl border border-slate-200 p-3"
+                                                                        >
+
+                                                                            <div className="font-bold text-slate-900">
+                                                                                {item.personel}
+                                                                            </div>
+
+                                                                            <div className="flex justify-between mt-1 text-xs text-slate-500">
+
+                                                                                <span>
+                                                                                    Dağılım %{item.oran}
+                                                                                </span>
+
+                                                                                <b className="text-slate-900">
+                                                                                    {formatCurrency(item.tutar)}
+                                                                                </b>
+
+                                                                            </div>
+
+                                                                        </div>
+                                                                    )
+                                                                )
+                                                                :
+                                                                <div className="text-sm text-slate-500">
+                                                                    IK dağılımı bulunamadı.
+                                                                </div>
+                                                        }
+
+
+                                                        <div className="
+    mt-4
+    pt-3
+    border-t
+    text-sm
+    font-bold
+    text-slate-900
+">
+                                                            IK Toplam:
+                                                            {" "}
+                                                            {formatCurrency(
+                                                                projectSourceDetailQuery.data?.toplamlar?.ik ?? 0
+                                                            )}
+                                                        </div>
+
+
                                                     </div>
                                                 </div>
 
-                                                {projectDetailQuery.isFetching ? (
-                                                    <div className="px-5 py-10 text-center text-sm font-medium text-slate-500">
-                                                        Sefer detayları yükleniyor...
-                                                    </div>
-                                                ) : projectDetailQuery.isError ? (
-                                                    <div className="px-5 py-10 text-center">
-                                                        <div className="text-sm font-bold text-red-700">
-                                                            Sefer detayları yüklenemedi.
+
+
+                                                <div className="
+                    rounded-2xl
+                    border
+                    bg-white
+                    p-5
+                ">
+
+                                                    <h4 className="
+                        font-bold
+                        text-slate-900
+                        mb-4
+                    ">
+                                                        Muhasebe
+                                                    </h4>
+
+
+                                                    <div className="space-y-3 text-sm">
+
+                                                        {
+                                                            projectSourceDetailQuery.data?.muhasebe?.length
+                                                                ?
+                                                                projectSourceDetailQuery.data.muhasebe.map(
+                                                                    (item: any, index: number) => (
+                                                                        <div
+                                                                            key={index}
+                                                                            className="rounded-xl border border-slate-200 p-3"
+                                                                        >
+
+                                                                            <div className="font-bold text-slate-900">
+                                                                                {item.hesap}
+                                                                            </div>
+
+
+                                                                            <div className="mt-1 text-xs text-slate-500">
+                                                                                {item.aciklama}
+                                                                            </div>
+
+
+                                                                            <div className="flex justify-between mt-2 text-xs">
+
+                                                                                <span>
+                                                                                    %{item.oran}
+                                                                                </span>
+
+
+                                                                                <b className="text-slate-900">
+                                                                                    {formatCurrency(
+                                                                                        Number(item.tutar ?? 0)
+                                                                                    )}
+                                                                                </b>
+
+                                                                            </div>
+
+                                                                        </div>
+                                                                    )
+                                                                )
+                                                                :
+                                                                <div className="text-sm text-slate-500">
+                                                                    Muhasebe dağılımı bulunamadı.
+                                                                </div>
+                                                        }
+
+
+                                                        <div className="
+    mt-4
+    pt-3
+    border-t
+    text-sm
+    font-bold
+    text-slate-900
+">
+                                                            Muhasebe Toplam:
+                                                            {" "}
+                                                            {formatCurrency(
+                                                                projectSourceDetailQuery.data?.toplamlar?.muhasebe ?? 0
+                                                            )}
                                                         </div>
 
-                                                        <div className="mt-1 text-xs text-red-600">
-                                                            {projectDetailQuery.error instanceof Error
-                                                                ? projectDetailQuery.error.message
-                                                                : "Beklenmeyen bir hata oluştu."}
-                                                        </div>
+
                                                     </div>
-                                                ) : trips.length === 0 ? (
-                                                    <div className="px-5 py-10 text-center text-sm text-slate-500">
-                                                        Bu projeye ait sefer detayı bulunamadı.
+
+
+                                                    {/* GERÇEK OPERASYON CARD */}
+
+                                                    <div
+                                                        className="rounded-2xl border border-slate-200 bg-white p-5"
+                                                    >
+
+                                                        <ReelOperationCard
+                                                            data={
+                                                                projectSourceDetailQuery.data?.reel
+                                                            }
+                                                        />
+
                                                     </div>
-                                                        ) : (
-                                                            <div className="overflow-x-auto">
-                                                        <table className="min-w-full border-collapse">
-                                                            <thead>
-                                                                <tr className="border-b border-slate-200 bg-slate-50">
-                                                                    <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                        Sefer No
-                                                                    </th>
+                                                </div>
 
-                                                                    <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                        Plaka
-                                                                    </th>
-
-                                                                    <th className="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                        Gelir
-                                                                    </th>
-
-                                                                    <th className="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                        Gider
-                                                                    </th>
-
-                                                                    <th className="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                        Kâr
-                                                                    </th>
-                                                                </tr>
-                                                            </thead>
-
-                                                            <tbody className="divide-y divide-slate-100">
-                                                                {trips.map(
-                                                                    (trip) => {
-                                                                        const tripIsProfitable =
-                                                                            trip.profit >= 0;
-
-                                                                        return (
-                                                                            <tr
-                                                                                key={
-                                                                                    trip.tripId
-                                                                                }
-                                                                                className="transition hover:bg-slate-50"
-                                                                            >
-                                                                                <td className="whitespace-nowrap px-5 py-3.5 text-sm font-bold text-slate-950">
-                                                                                    {
-                                                                                        trip.tripId
-                                                                                    }
-                                                                                </td>
-
-                                                                                <td className="whitespace-nowrap px-5 py-3.5 text-sm font-semibold text-slate-700">
-                                                                                    {
-                                                                                        trip.plateNumber
-                                                                                    }
-                                                                                </td>
-
-                                                                                <td className="whitespace-nowrap px-5 py-3.5 text-right text-sm font-semibold text-slate-700">
-                                                                                    {formatCurrency(
-                                                                                        trip.revenue,
-                                                                                    )}
-                                                                                </td>
-
-                                                                                <td className="whitespace-nowrap px-5 py-3.5 text-right text-sm font-semibold text-slate-700">
-                                                                                    {formatCurrency(
-                                                                                        trip.expense,
-                                                                                    )}
-                                                                                </td>
-
-                                                                                <td
-                                                                                    className={[
-                                                                                        "whitespace-nowrap px-5 py-3.5 text-right text-sm font-extrabold",
-                                                                                        tripIsProfitable
-                                                                                            ? "text-emerald-700"
-                                                                                            : "text-red-700",
-                                                                                    ].join(
-                                                                                        " ",
-                                                                                    )}
-                                                                                >
-                                                                                    {formatCurrency(
-                                                                                        trip.profit,
-                                                                                    )}
-                                                                                </td>
-                                                                            </tr>
-                                                                        );
-                                                                    },
-                                                                )}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                )}
                                             </div>
+
                                         </td>
                                     </tr>
+
                                 ) : null}
                             </Fragment>
                         );
@@ -655,6 +1135,7 @@ function ProjectTable({
 }
 
 export function DashboardPage() {
+    const navigate = useNavigate();
     const initialPeriod = useMemo(
         () => getInitialPeriod(),
         [],
@@ -718,7 +1199,7 @@ export function DashboardPage() {
                 if (job.status === "failed") {
                     throw new Error(
                         job.error ??
-                            "Senkronizasyon başarısız oldu.",
+                        "Senkronizasyon başarısız oldu.",
                     );
                 }
 
@@ -900,7 +1381,7 @@ export function DashboardPage() {
 
             {dashboard ? (
                 <>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                         {dashboard.metrics.map(
                             (metric) => (
                                 <MetricCard
@@ -910,6 +1391,88 @@ export function DashboardPage() {
                             ),
                         )}
                     </div>
+
+                    <div className="mt-6 grid gap-6 xl:grid-cols-2">
+                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="mb-4">
+                                <h3 className="font-extrabold text-slate-950">
+                                    Proje Kârlılık Analizi
+                                </h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    En yüksek kâr üreten ilk projeler
+                                </p>
+                            </div>
+
+                            <ProfitChart
+                                projects={dashboard.projects}
+                            />
+                        </article>
+
+                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="mb-4">
+                                <h3 className="font-extrabold text-slate-950">
+                                    Proje Durum Dağılımı
+                                </h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Sağlıklı, takip ve risk dağılımı
+                                </p>
+                            </div>
+
+                            <ProjectStatusChart
+                                projects={dashboard.projects}
+                            />
+                        </article>
+                    </div>
+
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <ManagementCard
+                            title="En Kârlı Proje"
+                            value={
+                                dashboard.management.bestProjectName ??
+                                "-"
+                            }
+                            description={
+                                formatCurrency(
+                                    dashboard.management.bestProjectProfit,
+                                )
+                            }
+                        />
+
+                        <ManagementCard
+                            title="Ortalama Kâr Oranı"
+                            value={
+                                `%${formatPercent(
+                                    dashboard.management.averageProfitRate,
+                                )}`
+                            }
+                            description="Projelerin ortalama kârlılık oranı"
+                        />
+
+                        <ManagementCard
+                            title="Riskli Proje"
+                            value={
+                                formatNumber(
+                                    dashboard.management.riskProjectCount,
+                                )
+                            }
+                            description="Takip edilmesi gereken proje sayısı"
+                        />
+                    </div>
+
+                    <article className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="mb-4">
+                            <h3 className="font-extrabold text-slate-950">
+                                Sefer Yoğunluğu
+                            </h3>
+                            <p className="mt-1 text-xs text-slate-500">
+                                En fazla operasyon yapan projeler
+                            </p>
+                        </div>
+
+                        <ShipmentChart
+                            projects={dashboard.projects}
+                        />
+                    </article>
 
                     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center">
@@ -947,6 +1510,7 @@ export function DashboardPage() {
                             projects={dashboard.projects}
                             startDate={dashboard.period.startDate}
                             endDate={dashboard.period.endDate}
+                            navigate={navigate}
                         />
                     </article>
                 </>
@@ -954,12 +1518,6 @@ export function DashboardPage() {
         </section>
     );
 }
-
-
-
-
-
-
 
 
 

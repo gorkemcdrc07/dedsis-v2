@@ -63,6 +63,12 @@ export const DashboardResponseSchema = z.object({
         endDate: z.string(),
     }),
     metrics: z.array(DashboardMetricSchema),
+    management: z.object({
+        bestProjectName: z.string().nullable(),
+        bestProjectProfit: z.number(),
+        averageProfitRate: z.number(),
+        riskProjectCount: z.number(),
+    }),
     projects: z.array(DashboardProjectRowSchema),
     system: z.object({
         api: z.enum([
@@ -108,3 +114,4 @@ export const DashboardProjectDetailResponseSchema =
 export type DashboardProjectDetailResponse = z.infer<
     typeof DashboardProjectDetailResponseSchema
 >;
+

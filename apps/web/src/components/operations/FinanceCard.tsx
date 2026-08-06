@@ -26,10 +26,61 @@ function date(value?: string) {
 }
 
 export function FinanceCard({ row }: { row: OperationRow }) {
+  const sales = Number(row.SalesInvoceIncome ?? 0);
+  const purchase = Number(row.PurchaseInvoiceIncome ?? 0);
+  const profit = sales - purchase;
+  const margin =
+    sales > 0
+      ? (profit / sales) * 100
+      : 0;
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <h3 className="mb-5 font-bold text-slate-950">Finans</h3>
 
+      <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <h4 className="mb-4 text-sm font-bold text-slate-900">
+          Kârlılık özeti
+        </h4>
+
+        <div className="grid gap-4 sm:grid-cols-4">
+          <div>
+            <div className="text-xs text-slate-500">
+              Satış
+            </div>
+            <div className="mt-1 font-bold text-slate-900">
+              {money(sales)}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">
+              Alış
+            </div>
+            <div className="mt-1 font-bold text-slate-900">
+              {money(purchase)}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">
+              Net kâr
+            </div>
+            <div className="mt-1 font-bold text-emerald-700">
+              {money(profit)}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">
+              Kâr marjı
+            </div>
+            <div className="mt-1 font-bold text-blue-700">
+              %{margin.toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl bg-emerald-50 p-4">
           <div className="text-xs font-semibold text-emerald-700">
@@ -93,3 +144,5 @@ export function FinanceCard({ row }: { row: OperationRow }) {
     </section>
   );
 }
+
+

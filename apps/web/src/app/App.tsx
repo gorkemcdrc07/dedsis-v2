@@ -21,6 +21,7 @@ import {
   useOutletContext,
 } from "react-router-dom";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { Toaster } from "sonner";
 import {
   getCurrentSession,
   isAuthenticated,
@@ -31,12 +32,17 @@ import { LoginPage } from "../pages/LoginPage";
 import { PlaceholderPage } from "../pages/PlaceholderPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { OperationsPage } from "../pages/OperationsPage";
+import { EmployeeProjectsPage } from "../pages/EmployeeProjectsPage";
+import EvideaPage from "../pages/EvideaPage";
+import BasbugPage from "../pages/BasbugPage";
+import MuhasebePage from "../pages/MuhasebePage";
+import InsanKaynaklariPage from "../pages/InsanKaynaklariPage";
 
 const navigation = [
   { path: "ana-panel", title: "Ana Panel" },
 { path: "operasyon-kayitlari", title: "Operasyon Kayıtları" },
   { path: "yonetim-paneli", title: "Yönetim" },
-  { path: "muhasebe-karlilik", title: "Muhasebe" },
+  { path: "muhasebe", title: "Muhasebe" },
   { path: "insan-kaynaklari", title: "İnsan Kaynakları" },
   { path: "proje-operasyon", title: "Operasyon" },
   { path: "kullanici-yetkileri", title: "Yetkilendirme" },
@@ -328,7 +334,8 @@ function Layout() {
 
 export function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<Guard />}>
@@ -346,12 +353,39 @@ export function App() {
   path="operasyon-kayitlari"
   element={<OperationsPage />}
 />
+<Route
+  path="kullanici-yetkileri"
+  element={<EmployeeProjectsPage />}
+/>
+
+<Route
+  path="evidea"
+  element={<EvideaPage />}
+/>
+
+<Route
+  path="basbug"
+  element={<BasbugPage />}
+/>
+
+<Route
+  path="muhasebe"
+  element={<MuhasebePage />}
+/>
+
+<Route
+  path="insan-kaynaklari"
+  element={<InsanKaynaklariPage />}
+/>
 
           {navigation
             .filter(
   (item) =>
     item.path !== "ana-panel" &&
-    item.path !== "operasyon-kayitlari",
+    item.path !== "operasyon-kayitlari" &&
+    item.path !== "kullanici-yetkileri" &&
+    item.path !== "evidea" &&
+    item.path !== "basbug",
 )
             .map((item) => (
               <Route
@@ -368,9 +402,64 @@ export function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+
+
+      <Toaster
+      position="top-right"
+        richColors
+      />
+
+    </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

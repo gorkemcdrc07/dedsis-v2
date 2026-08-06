@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+﻿import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -8,6 +8,13 @@ import { healthRoutes } from "./modules/health/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { dashboardRoutes } from "./modules/dashboard/routes.js";
 import { legacySyncRoutes } from "./modules/legacy-sync/routes.js";
+import { operationsRoutes } from "./modules/operations/routes.js";
+import { employeeProjectsRoutes } from "./modules/employee-projects/routes.js";
+import { evideaRoutes } from "./modules/evidea/routes.js";
+import { basbugRoutes } from "./modules/basbug/routes.js";
+import { userProjectsRoutes } from "./modules/user-projects/routes.js";
+import { muhasebeRoutes } from "./modules/muhasebe/routes.js";
+import { ikRoutes } from "./modules/ik/routes.js";
 
 type ErrorWithStatusCode = Error & {
     statusCode?: number;
@@ -24,9 +31,23 @@ export async function buildApp() {
     await app.register(helmet);
 
     await app.register(cors, {
-        origin: [env.WEB_ORIGIN],
-        credentials: true,
-    });
+    origin: [
+        env.WEB_ORIGIN,
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
+
+    methods: [
+        "GET",
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+    ],
+
+    credentials: true,
+});
 
     await app.register(rateLimit, {
         max: 100,
@@ -34,6 +55,7 @@ export async function buildApp() {
     });
 
     app.setErrorHandler((error: unknown, request, reply) => {
+        request.log.error({ err: error }, "Unhandled API error");
         if (error instanceof ZodError) {
             return reply.code(400).send({
                 success: false,
@@ -53,14 +75,6 @@ export async function buildApp() {
             typeof normalizedError.statusCode === "number"
                 ? normalizedError.statusCode
                 : 500;
-
-        request.log.error(
-            {
-                err: normalizedError,
-                statusCode: status,
-            },
-            "Request failed",
-        );
 
         return reply.code(status).send({
             success: false,
@@ -86,9 +100,74 @@ export async function buildApp() {
         prefix: "/api/v1/dashboard",
     });
 
+    await app.register(operationsRoutes, {
+
+
+        prefix: "/api/v1/operations",
+
+
+    });
+
+
+
+    await app.register(userProjectsRoutes, {
+        prefix: "/api/v1/user-projects",
+    });
+
+    await app.register(employeeProjectsRoutes, {
+        prefix: "/api/v1/employee-projects",
+    });
+
+
+    await app.register(evideaRoutes, {
+        prefix: "/api/v1/evidea",
+    });
+
+
+    await app.register(muhasebeRoutes, {
+        prefix: "/api/v1/muhasebe",
+    });
+
+
+    await app.register(basbugRoutes, {
+        prefix: "/api/v1/basbug",
+    });
+
+
     await app.register(legacySyncRoutes, {
         prefix: "/api/v1/legacy-sync",
     });
 
+    await app.register(ikRoutes, {
+        prefix: "/api/v1/ik",
+    });
+
     return app;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

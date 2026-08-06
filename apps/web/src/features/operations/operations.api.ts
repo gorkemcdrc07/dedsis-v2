@@ -7,10 +7,18 @@ export interface OperationsRequest {
   page: number;
   pageSize: number;
   userId?: string;
+
+  filters?: {
+    projectName?: string;
+    plateNumber?: string;
+    documentNo?: string;
+    customerName?: string;
+    supplierName?: string;
+  };
 }
 
 export function getOperations(request: OperationsRequest) {
-  return api<OperationsResponse>("/api/v1/legacy-data/query", {
+  return api<OperationsResponse>("/api/v1/operations/query", {
     method: "POST",
     body: JSON.stringify(request),
   });

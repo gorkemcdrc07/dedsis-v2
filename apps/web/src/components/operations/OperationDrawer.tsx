@@ -6,6 +6,8 @@ import { FinanceCard } from "./FinanceCard";
 import { CustomerCard } from "./CustomerCard";
 import { SystemCard } from "./SystemCard";
 import { JsonCard } from "./JsonCard";
+import { OperationSummaryCard } from "./OperationSummaryCard";
+import { OperationTimelineCard } from "./OperationTimelineCard";
 
 type Props = {
   row: OperationRow | null;
@@ -65,9 +67,11 @@ export function OperationDrawer({ row, onClose }: Props) {
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
+          <OperationSummaryCard row={row} />
           <GeneralCard row={row} />
           <FinanceCard row={row} />
           <CustomerCard row={row} />
+          <OperationTimelineCard row={row} />
           <SystemCard row={row} />
 
           {row.Description ? (
@@ -88,3 +92,5 @@ export function OperationDrawer({ row, onClose }: Props) {
     </div>
   );
 }
+
+

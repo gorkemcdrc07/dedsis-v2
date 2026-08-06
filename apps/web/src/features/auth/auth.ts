@@ -73,3 +73,17 @@ export async function logout(): Promise<void> {
 export function isAuthenticated(): boolean {
   return Boolean(sessionStorage.getItem("access_token"));
 }
+
+
+export function hasRole(
+    session:CurrentSession,
+    roles:string[]
+){
+
+    return session.roles.some(
+        role =>
+            roles.includes(role.code)
+    );
+
+}
+

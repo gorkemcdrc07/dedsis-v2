@@ -84,3 +84,110 @@ export async function getSyncJob(
         `/api/v1/legacy-sync/${jobId}`,
     );
 }
+
+export type DashboardSourceSummary = {
+
+    ik:{
+        personelSayisi:number;
+        toplamMaliyet:number;
+        dagitilan:number;
+        bekleyen:number;
+    };
+
+    muhasebe:{
+        toplamGider:number;
+        bekleyen:number;
+    };
+
+};
+
+
+export async function getDashboardSourceSummary()
+: Promise<DashboardSourceSummary> {
+
+    return api<DashboardSourceSummary>(
+        "/api/v1/dashboard/source-summary",
+    );
+
+}
+
+
+export type DashboardProjectSourceDetail = {
+
+    ik: {
+        personel: string;
+        oran: number;
+        tutar: number;
+    }[];
+
+    muhasebe: any[];
+
+
+    reel: {
+
+        gelir: {
+
+            satis: number;
+
+            alis: number;
+
+        };
+
+
+        gider: {
+
+            hizmet: number;
+
+            masraf: number;
+
+        };
+
+
+        hizmetDetay: {
+
+            isim: string;
+
+            tutar: number;
+
+        }[];
+
+
+        toplamGelir: number;
+
+        toplamGider: number;
+
+        kar: number;
+
+    };
+
+
+    toplamlar: {
+
+        ik: number;
+
+        muhasebe: number;
+
+        toplam: number;
+
+    };
+
+};
+
+export async function getDashboardProjectSourceDetail(
+    projectId: string,
+    startDate: string,
+    endDate: string,
+): Promise<DashboardProjectSourceDetail> {
+
+    const params =
+        new URLSearchParams({
+            startDate,
+            endDate
+        });
+
+
+    return api<DashboardProjectSourceDetail>(
+        `/api/v1/dashboard/projects/${projectId}/source-detail?${params.toString()}`
+    );
+
+}

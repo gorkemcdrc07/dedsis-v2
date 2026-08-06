@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   DashboardDetailRow,
   DashboardProjectDetail,
@@ -75,6 +76,7 @@ export function ProjectDetailDrawer({
   detail,
   onClose,
 }: ProjectDetailDrawerProps) {
+  const navigate = useNavigate();
   const [selectedRow, setSelectedRow] =
     useState<DashboardDetailRow | null>(
       null,
@@ -314,3 +316,9 @@ export function ProjectDetailDrawer({
     </div>
   );
 }
+
+
+
+
+
+

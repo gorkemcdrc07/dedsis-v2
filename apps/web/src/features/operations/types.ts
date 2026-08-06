@@ -71,4 +71,11 @@ export interface OperationsResponse {
   totalCount: number;
   page: number;
   pageSize: number;
+
+  summary: {
+    totalSales: number;
+    totalPurchase: number;
+    totalProfit: number;
+  };
 }
+
