@@ -310,9 +310,11 @@ async function fetchImportedRows(
             "purchase_invoice_income",
             "sales_invoice_income",
         ].join(",");
+    let lastId: number | string | null = null;
+    let pageNumber = 0;
 
-    for (let from = 0; ; from += PAGE_SIZE) {
-        const to = from + PAGE_SIZE - 1;
+    for (;;) {
+        pageNumber += 1;
         let page: Record<string, unknown>[] | null = null;
         let lastError: { message: string } | null = null;
 
@@ -321,7 +323,7 @@ async function fetchImportedRows(
             attempt <= MAX_ATTEMPTS;
             attempt += 1
         ) {
-            const { data, error } = await supabaseAdmin
+            let query = supabaseAdmin
                 .from("shipment_imports")
                 .select(columns)
                 .gte(
@@ -333,12 +335,18 @@ async function fetchImportedRows(
                     toIsoDate(endDate),
                 )
                 .order(
-                    "legacy_income_expense_id",
+                    "id",
                     {
                         ascending: true,
                     },
                 )
-                .range(from, to);
+                .limit(PAGE_SIZE);
+
+            if (lastId !== null) {
+                query = query.gt("id", lastId);
+            }
+
+            const { data, error } = await query;
 
             if (!error) {
                 page = (data ?? []) as unknown as Record<
@@ -350,7 +358,7 @@ async function fetchImportedRows(
 
             lastError = error;
             console.warn(
-                `Dashboard Supabase sayfası ${from}-${to} alınamadı (${attempt}/${MAX_ATTEMPTS}): ${error.message}`,
+                `Dashboard Supabase sayfası ${pageNumber} alınamadı (${attempt}/${MAX_ATTEMPTS}): ${error.message}`,
             );
 
             if (attempt < MAX_ATTEMPTS) {
@@ -378,6 +386,24 @@ async function fetchImportedRows(
         if (page.length < PAGE_SIZE) {
             break;
         }
+
+        const nextId = page.at(-1)?.id;
+
+        if (
+            typeof nextId !== "number" &&
+            typeof nextId !== "string"
+        ) {
+            throw Object.assign(
+                new Error(
+                    "İçe aktarılan kayıt sayfalaması için son kayıt kimliği bulunamadı.",
+                ),
+                {
+                    statusCode: 500,
+                },
+            );
+        }
+
+        lastId = nextId;
 
         await sleep(100);
     }
