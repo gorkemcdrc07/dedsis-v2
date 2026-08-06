@@ -10,6 +10,7 @@ import {
     ChevronRight,
     CircleDollarSign,
     Filter,
+    FileSpreadsheet,
     LoaderCircle,
     ReceiptText,
     PackageCheck,
@@ -41,6 +42,7 @@ import {
 
 import { useDashboard } from "../features/dashboard/useDashboard";
 import { ReelOperationCard } from "../features/dashboard/components/ReelOperationCard";
+import { exportDashboardDetails, exportDashboardSummary } from "../features/dashboard/dashboard-export";
 
 function toInputDate(date: Date): string {
     const year = date.getFullYear();
@@ -998,6 +1000,7 @@ export function DashboardPage() {
     ] = useState(initialPeriod.endDate);
     const [isSyncing, setIsSyncing] =
         useState(false);
+    const [isExportingDetails, setIsExportingDetails] = useState(false);
 
     const [syncError, setSyncError] =
         useState<string | null>(null);
@@ -1010,6 +1013,30 @@ export function DashboardPage() {
         endDate: appliedEndDate,
     });
     const dashboard = dashboardQuery.data;
+
+    const handleSummaryExport = () => {
+        if (!dashboard) return;
+        exportDashboardSummary(dashboard.projects, dashboard.period);
+    };
+
+    const handleDetailedExport = async () => {
+        if (!dashboard || isExportingDetails) return;
+        setIsExportingDetails(true);
+        setSyncError(null);
+        try {
+            const items: Array<{ project: DashboardProjectRow; detail: DashboardProjectSourceDetail }> = [];
+            for (let index = 0; index < dashboard.projects.length; index += 4) {
+                const batch = dashboard.projects.slice(index, index + 4);
+                const details = await Promise.all(batch.map((project) => getDashboardProjectSourceDetail(project.projectId, dashboard.period.startDate, dashboard.period.endDate)));
+                batch.forEach((project, batchIndex) => items.push({ project, detail: details[batchIndex] }));
+            }
+            exportDashboardDetails(items, dashboard.period);
+        } catch (error) {
+            setSyncError(error instanceof Error ? `Detaylı Excel hazırlanamadı: ${error.message}` : "Detaylı Excel hazırlanamadı.");
+        } finally {
+            setIsExportingDetails(false);
+        }
+    };
 
     const handleRefresh = () => {
         setAppliedStartDate(startDate);
@@ -1253,7 +1280,10 @@ export function DashboardPage() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur">
+                            <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" onClick={handleSummaryExport} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-xs font-bold text-white backdrop-blur transition hover:bg-white/20"><FileSpreadsheet className="h-4 w-4" />Excel’e Aktar</button>
+                            <button type="button" onClick={() => void handleDetailedExport()} disabled={isExportingDetails} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-500 px-3 text-xs font-black text-slate-950 shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-400 disabled:cursor-wait disabled:opacity-70">{isExportingDetails ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}{isExportingDetails ? "Detaylar hazırlanıyor…" : "Detaylı Excel"}</button>
+                            <div className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 text-xs font-bold text-slate-200 backdrop-blur">
                                 <span
                                     className={[
                                         "h-2 w-2 rounded-full",
@@ -1265,6 +1295,7 @@ export function DashboardPage() {
                                 />
 
                                 Veri bağlantısı: {dashboard.system.api}
+                            </div>
                             </div>
                             </div>
                         </div>
