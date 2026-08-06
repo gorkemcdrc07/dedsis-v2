@@ -3,7 +3,7 @@ import { CalendarDays, CheckCircle2, Database, LoaderCircle, RefreshCw, Trash2, 
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import { parseMuhasebeExcel } from "../features/muhasebe/utils/muhasebeParser";
-import { createMuhasebeImport, deleteMuhasebePeriod, getMuhasebeDashboard, getMuhasebeImports, getMuhasebeKayitlari, getMuhasebeStats, saveMuhasebeDistribution } from "../features/muhasebe/api/muhasebe.api";
+import { createMuhasebeImport, deleteMuhasebePeriod, getMuhasebeImports, getMuhasebeKayitlari, getMuhasebeStats, saveMuhasebeDistribution } from "../features/muhasebe/api/muhasebe.api";
 import { getEmployeeProjects } from "../features/employee-projects/employee-projects.api";
 import type { MuhasebeRow } from "../features/muhasebe/types";
 import { MuhasebeUploadPanel } from "../features/muhasebe/components/MuhasebeUploadPanel";
@@ -24,7 +24,6 @@ export default function MuhasebePage() {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [imports, setImports] = useState<ImportRow[]>([]);
-  const [dashboard, setDashboard] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [distributionOpen, setDistributionOpen] = useState(false);
@@ -36,11 +35,11 @@ export default function MuhasebePage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [records, stat, dashboardData, history, projectData] = await Promise.all([
+      const [records, stat, history, projectData] = await Promise.all([
         getMuhasebeKayitlari({ ay: selectedMonth, yil: selectedYear }), getMuhasebeStats({ ay: selectedMonth, yil: selectedYear }),
-        getMuhasebeDashboard({ ay: selectedMonth, yil: selectedYear }), getMuhasebeImports({ ay: selectedMonth, yil: selectedYear }), getEmployeeProjects(),
+        getMuhasebeImports({ ay: selectedMonth, yil: selectedYear }), getEmployeeProjects(),
       ]);
-      setRows(records as MuhasebeRow[]); setStats((stat as any).data ?? stat); setDashboard((dashboardData as any).data ?? dashboardData);
+      setRows(records as MuhasebeRow[]); setStats((stat as any).data ?? stat);
       setImports(history as ImportRow[]); setProjects(projectData.projects ?? []); setSelectedIds([]);
     } catch (error) { toast.error(error instanceof Error ? error.message : "Muhasebe verileri alınamadı."); }
     finally { setLoading(false); }
@@ -85,7 +84,7 @@ export default function MuhasebePage() {
 
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="flex items-center gap-2 text-lg font-black"><Database className="h-5 w-5 text-blue-600" />{monthNames[selectedMonth - 1]} {selectedYear} yüklemeleri</h3><p className="mt-1 text-sm text-slate-500">Bu döneme yüklenen dosyaları toplu olarak takip edin.</p></div><div className="flex flex-wrap gap-3"><span className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">{imports.length} dosya</span><span className="rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">{uploadedCount.toLocaleString("tr-TR")} kayıt</span>{canDelete && imports.length ? <button onClick={() => void removePeriod()} disabled={deleting} className="flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-60">{deleting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Dönemi toplu sil</button> : null}</div></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{imports.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 hover:border-blue-200"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><CheckCircle2 className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-bold">{item.dosya_adi}</span><span className="text-xs text-slate-500">{Number(item.kayit_sayisi).toLocaleString("tr-TR")} kayıt{item.created_at ? ` · ${new Date(item.created_at).toLocaleDateString("tr-TR")}` : ""}</span></span></div>)}{!imports.length ? <div className="col-span-full rounded-2xl border border-dashed py-9 text-center text-sm text-slate-400">Bu dönem için dosya yüklenmemiş.</div> : null}</div></section>
 
-    {loading ? <div className="grid min-h-64 place-items-center rounded-3xl border bg-white"><LoaderCircle className="h-8 w-8 animate-spin text-blue-600" /></div> : <><MuhasebeDashboard stats={stats} pending={rows.length} distributed={Math.max(0, (stats?.totalCount ?? 0) - rows.length)} dashboard={dashboard} imports={imports} />{selectedIds.length > 0 ? <div className="sticky bottom-4 z-20 flex items-center justify-between rounded-2xl bg-blue-600 p-4 text-white shadow-xl"><span className="font-black">{selectedIds.length} kayıt seçildi</span><button onClick={() => setDistributionOpen(true)} className="rounded-xl bg-white px-5 py-2.5 text-sm font-black text-blue-700">Projelere dağıt</button></div> : null}<div><div className="mb-3 flex items-center justify-between"><div><h3 className="text-lg font-black">Dağıtım bekleyen kayıtlar</h3><p className="text-sm text-slate-500">{rows.length.toLocaleString("tr-TR")} kayıt listeleniyor.</p></div><CalendarDays className="h-5 w-5 text-slate-400" /></div><MuhasebeTable rows={rows} selectedIds={selectedIds} onSelectionChange={setSelectedIds} /></div></>}
+    {loading ? <div className="grid min-h-64 place-items-center rounded-3xl border bg-white"><LoaderCircle className="h-8 w-8 animate-spin text-blue-600" /></div> : <><MuhasebeDashboard stats={stats} pending={rows.length} distributed={Math.max(0, (stats?.totalCount ?? 0) - rows.length)} />{selectedIds.length > 0 ? <div className="sticky bottom-4 z-20 flex items-center justify-between rounded-2xl bg-blue-600 p-4 text-white shadow-xl"><span className="font-black">{selectedIds.length} kayıt seçildi</span><button onClick={() => setDistributionOpen(true)} className="rounded-xl bg-white px-5 py-2.5 text-sm font-black text-blue-700">Projelere dağıt</button></div> : null}<div><div className="mb-3 flex items-center justify-between"><div><h3 className="text-lg font-black">Dağıtım bekleyen kayıtlar</h3><p className="text-sm text-slate-500">{rows.length.toLocaleString("tr-TR")} kayıt listeleniyor.</p></div><CalendarDays className="h-5 w-5 text-slate-400" /></div><MuhasebeTable rows={rows} selectedIds={selectedIds} onSelectionChange={setSelectedIds} /></div></>}
     <MuhasebeProcessModal open={process.open} title={process.title} message={process.message} percent={process.percent} onClose={() => setProcess({ ...process, open: false })} />
     <MuhasebeDistributionDrawer open={distributionOpen} onClose={() => setDistributionOpen(false)} rows={selectedRows} projects={projects} onSave={async(distribution:any) => { await distribute(distribution); setDistributionOpen(false); }} />
   </div>;

@@ -9,11 +9,6 @@ import {
 
 
 import {
-    MuhasebeProjectSummary
-} from "./MuhasebeProjectSummary";
-
-
-import {
     MuhasebeImportHistory
 } from "./MuhasebeImportHistory";
 
@@ -27,10 +22,6 @@ type Props = {
 
     distributed:number;
 
-    dashboard:any;
-
-    imports:any[];
-
 };
 
 
@@ -43,11 +34,7 @@ export function MuhasebeDashboard({
 
     pending,
 
-    distributed,
-
-    dashboard,
-
-    imports
+    distributed
 
 }:Props){
 
@@ -67,16 +54,6 @@ space-y-6
     stats={stats}
 
 />
-
-
-<MuhasebeProjectSummary
-
-    projects={
-        dashboard?.projects ?? []
-    }
-
-/>
-
 
 
 <MuhasebeDistributionSummary

@@ -18,7 +18,9 @@ export async function api<T>(
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
-      "content-type": "application/json",
+      ...(typeof init.body === "string"
+        ? { "content-type": "application/json" }
+        : {}),
       ...(token
         ? {
             authorization: `Bearer ${token}`,
